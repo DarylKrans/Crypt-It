@@ -26,6 +26,7 @@ namespace Crypt_It
 {
     public partial class Form1 : Form
     {
+        readonly string Version = "0.6.0";
         /// These setting for debugging purposes
         readonly bool set_cores = false; // override automatic core detection for threading
         readonly int core_val = 4; // set number of cpu cores to use for threading
@@ -180,22 +181,13 @@ namespace Crypt_It
                                     case 2: offset = (long)ByteSegment[0] * (Chunk_Length << 3) + (long)ByteSegment[1]; break;
                                 }
                                 Multi_Thread = (i - j >= enc.Length && Cores > 0);
-                                if (i - j < enc.Length && Cores > 0)
-                                {
-                                    var c = Cores;
-                                    for (int x = 0; x < c; x++)
-                                    {
-                                        Cores -= 1;
-                                        if (i - j > Cores) { Multi_Thread = true; break; }
-                                    }
-                                }
+                                if (i - j < enc.Length && Cores > 0) { Cores = (int)(i - j) - 1; Multi_Thread= true; }
                                 byte[][] chunk = output = new byte[Cores + 1][];
                                 for (int x = 0; x <= Cores; x++)
                                 {
                                     chunk[x] = Read_Data(offset + (x * length), length);
-                                    TotalLength += length;
                                 }
-                                j += Cores;
+                                j += Cores; TotalLength += length * (Cores + 1);
                                 // --------- Create and start new worker threads ----------------------
                                 for (int x = 0; x <= Cores; x++)
                                 {
@@ -217,7 +209,7 @@ namespace Crypt_It
                                     + ")  " + Trunc(NewFile[FileNum], 42)));
                                 }
                                 this.Invoke(new Action(() => PBar.Update()));
-                                this.Invoke(new Action(() => Fsize.Text = ((tot - TotalLength) / 1024).ToString("N0") + " kb remaining."));
+                                this.Invoke(new Action(() => Fsize.Text = ((tot - TotalLength) >> 10).ToString("N0") + " kb remaining."));
                                 if (Multi_Thread)
                                 {
                                     this.Invoke(new Action(() => thd.Text = "(Multi-Threaded x" + (Cores + 1).ToString() + ")"));
@@ -526,7 +518,7 @@ namespace Crypt_It
                     }
                     if (NewFile.Length == 1) { Fname.Text = Trunc(NewFile[0], 52); Fname.Visible = true; }
                     if (NewFile.Length > 1) { Fname.Text = "Batch file process (" + NewFile.Length.ToString() + ") files."; Fname.Visible = true; }
-                    if (NewFile.Length >= 1) { Fsize.Text = (tot / 1024).ToString("N0") + " kb"; Fsize.ForeColor = Color.Silver; }
+                    if (NewFile.Length >= 1) { Fsize.Text = (tot >> 10).ToString("N0") + " kb"; Fsize.ForeColor = Color.Silver; }
                     else { Fname.Visible = Fsize.Visible = false; }
                     Reverse = Dec.Checked = (NewFile.Length == 1 && Path.GetExtension(NewFile[0]) == ".crypt");
                 }
