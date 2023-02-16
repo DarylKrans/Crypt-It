@@ -114,10 +114,7 @@ namespace Crypt_It
             for (int i = 0; i < KeyLen; i++)
             {
                 lKey[i] = (byte)rand.Next(1, 64); // generates 128 (kLen = 128) variables for bit-shifting Ulong's (64-bit integers)
-                if (i < 8)
-                {
-                    bKey[i] = (byte)rand.Next(1, 8);
-                }
+                if (i < 8) bKey[i] = (byte)rand.Next(1, 8);
                 xorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
             }
             // ------ END make encryption keys ------------- START  break file into segments ----------- //
@@ -127,11 +124,7 @@ namespace Crypt_It
                 Start_Working(true);
                 FileStream Stream = new FileStream(NewFile[FileNum], FileMode.Open, FileAccess.Read);
                 bool Do_Work = overwrite = true;
-                if (Path.GetExtension(NewFile[FileNum]) == ".crypt")
-                {
-                    Reverse = true;
-                }
-                else Reverse = false;
+                Reverse = (Path.GetExtension(NewFile[FileNum]) == ".crypt");
                 var Chunk_Length = 131072 << 3; // change chunk size.  (*8 = 8mb chunks) 
                 var uLongs = FileSize[FileNum] >> 3; // FileSize / 8;
                 long[] ByteSegment = new long[3]
@@ -150,30 +143,17 @@ namespace Crypt_It
 
                 }
                 Overwrite_Prompt(OutFile[FileNum]);
-                if (FileNum == TotalFiles - 1)
-                {
-                    Do_Work = false;
-                }
+                Do_Work = (FileNum != (TotalFiles - 1));
                 // ------ end condition checks ------------
                 if (overwrite && !cancel)
                 {
-                    if (FileNum == (TotalFiles - 1) && !overwrite)
-                    {
-                        goto Endall;
-                    }
+                    if (FileNum == (TotalFiles - 1) && !overwrite) goto Endall;
                     FileStream Dest = new FileStream(OutFile[FileNum], FileMode.Append);
-                    if (hide)
-                    {
-                        Set_File_Hidden(OutFile[FileNum], "h");
-                    }
+                    if (hide) Set_File_Hidden(OutFile[FileNum], "h");
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
-                        this.Invoke(new Action(() => OpenFile.Update()));
-                        this.Invoke(new Action(() => Pass.Update()));
-                        this.Invoke(new Action(() => PassC.Update()));
-                        this.Invoke(new Action(() => Cancel.Update()));
-                        this.Invoke(new Action(() => Start.Update()));
+                        this.Invoke(new Action(() => W_Update()));
                         long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         var Cores = Environment.ProcessorCount - 1;
                         // -- Check to see how many threads to use -------------------------------------
@@ -184,7 +164,7 @@ namespace Crypt_It
                         for (long step = 0; step < 3; step++)
                         {
                             var i = ByteSegment[step];
-                            if (step > 0)
+                            if (step > 0) 
                             {
                                 length = (int)ByteSegment[step]; i = 1; Cores = 0;
                             }
@@ -199,8 +179,7 @@ namespace Crypt_It
                                     case 1: offset = (long)ByteSegment[0] * (Chunk_Length << 3); break;
                                     case 2: offset = (long)ByteSegment[0] * (Chunk_Length << 3) + (long)ByteSegment[1]; break;
                                 }
-                                if (i - j >= enc.Length && Cores > 0) Multi_Thread = true;
-                                else Multi_Thread = false; 
+                                Multi_Thread = (i - j >= enc.Length && Cores > 0);
                                 if (i - j < enc.Length && Cores > 0)
                                 {
                                     var c = Cores;
@@ -242,8 +221,7 @@ namespace Crypt_It
                                 if (Multi_Thread)
                                 {
                                     this.Invoke(new Action(() => thd.Text = "(Multi-Threaded x" + (Cores + 1).ToString() + ")"));
-                                }
-                                else this.Invoke(new Action(() => thd.Text = null));
+                                } else this.Invoke(new Action(() => thd.Text = null));
                             }
                         }
                     Loopend:
@@ -253,14 +231,8 @@ namespace Crypt_It
                         {
                             try
                             {
-                                if (hide)
-                                {
-                                    Set_File_Hidden(OutFile[FileNum], "u");
-                                }
-                                if (File.Exists(OutFile[FileNum]))
-                                {
-                                    File.Delete(OutFile[FileNum]);
-                                }
+                                if (hide) Set_File_Hidden(OutFile[FileNum], "u");
+                                if (File.Exists(OutFile[FileNum])) File.Delete(OutFile[FileNum]);
                             }
                             catch { }
                         }
@@ -271,10 +243,7 @@ namespace Crypt_It
                             this.Invoke(new Action(() => this.Text = (msf - ms).ToString()));
                         }
                         FileSize[FileNum] = 0;
-                        if (!cancel && hide)
-                        {
-                            Set_File_Hidden(OutFile[FileNum], "u");
-                        }
+                        if (!cancel && hide) Set_File_Hidden(OutFile[FileNum], "u");
                         if (!cancel && del_source && overwrite)
                         {
                             try
@@ -325,16 +294,8 @@ namespace Crypt_It
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
                             DialogResult result = MessageBox.Show("overwrite file" + mes + "?", (e.ToString() + " Destination file" + mes +
                                 " already exist" + mes2 + "!"), buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-                            if (result == DialogResult.Yes)
-                            {
-                                {
-                                    yclick = true;
-                                }
-                            }
-                            if (result == DialogResult.No)
-                            {
-                                nclick = true;
-                            }
+                            yclick = (result == DialogResult.Yes);
+                            nclick = (result == DialogResult.No);
                             if (result == DialogResult.Cancel)
                             {
                                 Stream?.Close();
@@ -350,7 +311,7 @@ namespace Crypt_It
                         if (File.Exists(OutFile[FileNum]))
                         {
                             Stream?.Close();
-                            if (FileNum == TotalFiles - 1) Do_Work = false;
+                            Do_Work = (FileNum != TotalFiles - 1);
                             overwrite = false;
                             tot += FileSize[FileNum];
                         }
@@ -359,8 +320,7 @@ namespace Crypt_It
                     if (all && yclick)
                     {
                         try { File.Delete(f); } catch { }
-                        if (!File.Exists(f))
-                        overwrite = true;
+                        overwrite = (!File.Exists(f));
                     }
                 }
                 //----------------------- end of main file process void -- sub voids follow --------------------------
@@ -378,6 +338,14 @@ namespace Crypt_It
                 }
             }
         }
+        void W_Update()
+        {
+            OpenFile.Update();
+            Pass.Update();
+            PassC.Update();
+            Cancel.Update();
+            Start.Update();
+        }
         void Encrypt(byte[] DataIn, byte[] skey, byte[] rkey, byte[] xor, long length, long r1, int o)
         {
             output[o] = XOR(Shift(XOR(DataIn, xor), r1), xor);
@@ -392,20 +360,9 @@ namespace Crypt_It
                 {
                     for (int x = 0; x < (length >> 3); x++) // code to bitshift unsigned long's (64-bit)
                     {
-                        if (x % 2 == r)
-                        {
-                            g = RotateRight(BitConverter.ToUInt64(dat, x << 3), skey[h]); // << 3 = * 8
-                        }
-                        else
-                        {
-                            g = RotateLeft(BitConverter.ToUInt64(dat, x << 3), skey[h]);
-                        }
-                        if (h < skey.Length - 1)
-                        {
-                            h++;
-                        }
-                        else h = 0;
-
+                        g = (x % 2 == r) ? RotateRight(BitConverter.ToUInt64(dat, x << 3), skey[h]) : 
+                            RotateLeft(BitConverter.ToUInt64(dat, x << 3), skey[h]);
+                        h = (h < skey.Length - 1)? h + 1 : 0;
                         write.Write(BitConverter.GetBytes(g));
                     }
                 }
@@ -413,11 +370,8 @@ namespace Crypt_It
                 {
                     for (int x = 0; x < dat.Length; x++) // code to bitshift a single unsigned byte (8-bit)
                     {
-                        if (x % 2 == r)
-                        {
-                            g = ((uint)dat[x] >> rkey[x]) | ((uint)dat[x] << (8 - rkey[x])); // bit rotate byte to the right
-                        }
-                        else g = ((uint)dat[x] << rkey[x]) | ((uint)dat[x] >> (8 - rkey[x])); // bit rotate byte to the left
+                        g = (x % 2 == r) ? ((uint)dat[x] >> rkey[x]) | ((uint)dat[x] << (8 - rkey[x])) :
+                            ((uint)dat[x] << rkey[x]) | ((uint)dat[x] >> (8 - rkey[x]));
                         write.Write((byte)(g));
                     }
                 }
@@ -427,20 +381,13 @@ namespace Crypt_It
             }
             byte[] XOR(byte[] Data, byte[] XorKey)
             {
-                for (int t = 0; t < Data.Length; t++)
-                {
-                    Data[t] = (byte)(Data[t] ^ (XorKey[t % XorKey.Length])); // XOR data with xor key
-                }
+                for (int t = 0; t < Data.Length; t++) Data[t] = (byte)(Data[t] ^ (XorKey[t % XorKey.Length]));
                 return Data;
             }
             ulong RotateLeft(ulong a, int b)
-            {
-                return (a << b) | (a >> (64 - b));  // bitrotate Ulong to the left
-            }
+            { return (a << b) | (a >> (64 - b)); }  // bitrotate Ulong to the left
             ulong RotateRight(ulong a, int b)
-            {
-                return (a >> b) | (a << (64 - b)); // bitrotate Ulong to the right
-            }
+            { return (a >> b) | (a << (64 - b)); }// bitrotate Ulong to the right
         }
         void LockProgram() // This was just for fun.  A little hidden joke.
         {
@@ -495,14 +442,11 @@ namespace Crypt_It
             else
             {
                 FN.Visible = SZ.Visible = Fsize.Visible = true;
-                if (FileSize.Length > 0 && FileSize[TotalFiles - 1] > 0)
-                {
-                    Enable_Passwd();
-                }
+                if (FileSize.Length > 0 && FileSize[TotalFiles - 1] > 0) Enable_Passwd();
             }
             if (paswdc.Length > 0)
             {
-                if (!Reverse) Match.Visible = true;
+                Match.Visible = (!Reverse);
                 if (m)
                 {
                     if (FileSize.Length > 0 && FileSize[TotalFiles - 1] > 0) Start.Enabled = true;
@@ -529,25 +473,19 @@ namespace Crypt_It
         }
         void Show_PWD()
         {
-            if (!CheckBox1.Checked)
-            {
-                Pass.PasswordChar = PassC.PasswordChar = '\u25CF'; CheckBox1.Text = "Show Text";
-            }
-            else
-            {
-                Pass.PasswordChar = PassC.PasswordChar = '\0'; CheckBox1.Text = "Hide Text";
-            }
+            if (!CheckBox1.Checked) { Pass.PasswordChar = PassC.PasswordChar = '\u25CF'; CheckBox1.Text = "Show Text"; }
+            else { Pass.PasswordChar = PassC.PasswordChar = '\0'; CheckBox1.Text = "Hide Text"; }
         }
         private void OpenFile_Click(object sender, EventArgs e)
         {
-            this.openFileDialog1.Multiselect = true;
-            if ((Dec.Checked == true) && (Reverse == true))
+            if (Dec.Checked)
             {
                 this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
             }
             else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
             openFileDialog1.FileName = "";
             openFileDialog1.Title = "Open file to encrypt";
+            this.openFileDialog1.Multiselect = true;
             openFileDialog1.ShowDialog();
             if (openFileDialog1.FileName.Length > 0) Sort();
             else Clear_Info();
@@ -590,8 +528,7 @@ namespace Crypt_It
                     if (NewFile.Length > 1) { Fname.Text = "Batch file process (" + NewFile.Length.ToString() + ") files."; Fname.Visible = true; }
                     if (NewFile.Length >= 1) { Fsize.Text = (tot / 1024).ToString("N0") + " kb"; Fsize.ForeColor = Color.Silver; }
                     else { Fname.Visible = Fsize.Visible = false; }
-                    if (NewFile.Length == 1 && Path.GetExtension(NewFile[0]) == ".crypt") Reverse = Dec.Checked = true;
-                    else { Reverse = Dec.Checked = false; }
+                    Reverse = Dec.Checked = (NewFile.Length == 1 && Path.GetExtension(NewFile[0]) == ".crypt");
                 }
                 else
                 {
@@ -600,16 +537,12 @@ namespace Crypt_It
                     OutFile = new string[x];
                     TotalFiles = x;
                 }
-                if (crypt_file) Reverse = Dec.Checked = true;
-                if (OutFile.Length < 1) Reverse = Dec.Checked = false;
+                Reverse = Dec.Checked = (crypt_file);
             }
         }
         private void CheckBox1_CheckedChanged(object sender, EventArgs e)
         {
-            if (!working)
-            {
-                Options();
-            }
+            if (!working) Options();
             else Show_PWD();
             b++;
             if (!lc)
