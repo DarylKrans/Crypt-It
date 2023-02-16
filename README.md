@@ -12,7 +12,7 @@ This program is fully functional however it is possible you may encounter a few 
 I would strongly recommend making copies of files before testing just to be sure.
 
 As with my last encryption program, keys and passwords are not stored anywhere.  Keys are generated based on your password.  If you forget
-your password, you will not be able to recover your encrypted data unless you are a wizzard or you can find the seed your password generated!
+your password, you will not be able to recover your encrypted data unless you are a wizard or you can find the seed your password generated!
 Out of 2,147,483,647 possible seeds, it could take a while!  I'm also working on a program that will try to brute force seeds to see how long
 it takes to do because I am curious
 
