@@ -43,7 +43,6 @@ namespace Crypt_It
         bool b_Cancel = false;
         bool b_MultiThread = false;
         bool b_Overwrite = false;
-        bool b_Nclick = false;
         bool b_Yclick = false;
         bool b_OverwriteChecked = false;
         string[] s_NewFile = new string[0];
@@ -53,6 +52,7 @@ namespace Crypt_It
         byte[][] bt_Output = new byte[0][];
         int i_B = 0;  // Don't click the "show text" button too many times. (You've been warned!)
         int i_TotalFiles;
+        int i_Cores;
         long[] l_FileSize = new long[0];
         long l_tot;
 
@@ -62,6 +62,7 @@ namespace Crypt_It
         {
             InitializeComponent();
             this.Text = $"{Program} {Version}";
+            if (i_CoreVal < 1) i_CoreVal = 1;
             Options();
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
@@ -79,8 +80,9 @@ namespace Crypt_It
         {
             s_NewFile = new string[0];
             l_FileSize = new long[0];
+            PBar.Value= 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
-            b_Reverse = b_Cancel = Dec.Checked = b_Overwrite = b_OverwriteChecked = b_Nclick = b_Yclick = false;
+            b_Reverse = b_Cancel = Dec.Checked = b_Overwrite = b_OverwriteChecked = b_Yclick = false;
         }
         async void Process_File()
         {
@@ -121,13 +123,11 @@ namespace Crypt_It
                 xorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
             }
             // ------ END make encryption keys ------------- START  break file into segments ----------- //
-            PBar.Value = 0; // set progress bar to 0%
             Start_Working(true);
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
-                bool b_DoWork = true;
-                b_Overwrite = (!b_Nclick | !b_Yclick);
+                bool b_DoWork = b_Overwrite = true;
                 b_Reverse = (Path.GetExtension(s_NewFile[FileNum]) == ".crypt");
                 var Chunk_Length = 131072 << 3; // change chunk size.  (*8 = 8mb chunks) 
                 var uLongs = l_FileSize[FileNum] >> 3; // FileSize / 8;
@@ -156,18 +156,18 @@ namespace Crypt_It
                     {
                         this.Invoke(new Action(() => W_Update()));
                         long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                        var Cores = Environment.ProcessorCount - 1;
-                        Cores = (b_Set_Cores && i_CoreVal > 0) ? (!b_Set_Cores && Cores > 5) ? 0 : i_CoreVal - 1 : Cores /= 2;
+                        i_Cores = Environment.ProcessorCount - 1;
+                        i_Cores = (b_Set_Cores && i_CoreVal > 0) ? (!b_Set_Cores && i_Cores > 5) ? 0 : i_CoreVal - 1 : i_Cores /= 2;
                         // -----------------------------------------------------------------------------
                         for (long step = 0; step < 3; step++)
                         {
                             var i = ByteSegment[step];
                             if (step > 0)
                             {
-                                length = (int)ByteSegment[step]; i = 1; Cores = 0;
+                                length = (int)ByteSegment[step]; i = 1; i_Cores = 0;
                             }
                             long offset = 0;
-                            Thread[] enc = new Thread[Cores + 1];
+                            Thread[] enc = new Thread[i_Cores + 1];
                             for (long j = 0; j < i; j++)
                             {
                                 if (b_Cancel) goto Loopend;
@@ -177,24 +177,24 @@ namespace Crypt_It
                                     case 1: offset = (long)ByteSegment[0] * (Chunk_Length << 3); break;
                                     case 2: offset = (long)ByteSegment[0] * (Chunk_Length << 3) + (long)ByteSegment[1]; break;
                                 }
-                                b_MultiThread = (i - j >= enc.Length && Cores > 0);
-                                if (i - j < enc.Length && Cores > 0) { Cores = (int)(i - j) - 1; b_MultiThread = true; }
-                                byte[][] chunk = bt_Output = new byte[Cores + 1][];
-                                for (int x = 0; x <= Cores; x++) chunk[x] = Read_Data(offset + (x * length), length);
-                                j += Cores; TotalLength += length * (Cores + 1);
+                                b_MultiThread = (i - j >= enc.Length && i_Cores > 0);
+                                if (i - j < enc.Length && i_Cores > 0) { i_Cores = (int)(i - j) - 1; b_MultiThread = true; }
+                                byte[][] chunk = bt_Output = new byte[i_Cores + 1][];
+                                for (int x = 0; x <= i_Cores; x++) chunk[x] = Read_Data(offset + (x * length), length);
+                                j += i_Cores; TotalLength += length * (i_Cores + 1);
                                 // --------- Create and start new worker threads ----------------------
-                                for (int x = 0; x <= Cores; x++)
+                                for (int x = 0; x <= i_Cores; x++)
                                 {
                                     var xx = x;
                                     enc[x] = new Thread(() => { Encrypt(chunk[xx], lKey, bKey, xorKey, length, step, xx); });
                                     enc[x].Start();
                                 }
                                 // --- wait for worker threads to complete before continuing --------
-                                for (int x = 0; x <= Cores; x++) enc[x].Join();
+                                for (int x = 0; x <= i_Cores; x++) enc[x].Join();
                                 // --- write finished workload to file -------------------------------
-                                for (int x = 0; x <= Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
+                                for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
                                 // -------------------------------------------------------------------
-                                this.Invoke(new Action(() => Progress_Update(Cores)));
+                                this.Invoke(new Action(() => Progress_Update()));
                             }
                         }
                     Loopend:
@@ -209,7 +209,7 @@ namespace Crypt_It
                             }
                             catch { }
                         }
-                        if (Cores == 0) this.Invoke(new Action(() => thd.Text = ""));
+                        if (i_Cores == 0) this.Invoke(new Action(() => thd.Text = ""));
                         if (b_Timer)
                         {
                             long msf = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
@@ -267,19 +267,18 @@ namespace Crypt_It
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
                             DialogResult result = MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
                                 , buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-                            b_Yclick = (result == DialogResult.Yes);
-                            b_Nclick = (result == DialogResult.No);
+                            b_Yclick = (result == DialogResult.Yes)? (result == DialogResult.No)? false : true: false;
                             if (result == DialogResult.Cancel)
                             {
                                 Stream?.Close();
-                                b_Overwrite = false;
-                                b_Cancel = b_DoWork = true;
+                                b_Overwrite = b_DoWork = false;
+                                b_Cancel = true;
                                 this.Text = def;
                                 FileNum = i_TotalFiles - 1;
                             }
                         }
                     }
-                    if (b_Nclick)
+                    if (!b_Yclick)
                     {
                         if (File.Exists(s_OutFile[FileNum]))
                         {
@@ -302,7 +301,7 @@ namespace Crypt_It
                     if (a == "h") try { File.SetAttributes(f, File.GetAttributes(f) | FileAttributes.Hidden); } catch { } // hide file
                     if (a == "u") try { File.SetAttributes(f, File.GetAttributes(f) & ~FileAttributes.Hidden); } catch { } // unhide file
                 }
-                void Progress_Update(int C)
+                void Progress_Update()
                 {
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
@@ -313,7 +312,7 @@ namespace Crypt_It
                     }
                     PBar.Update();
                     Fsize.Text = $"{(l_tot - TotalLength) >> 10:N0} kb remaining.";
-                    if (b_MultiThread) thd.Text = $"(Multi-Threaded x{C + 1})"; else thd.Text = null;
+                    if (b_MultiThread) thd.Text = $"(Multi-Threaded x{i_Cores + 1})"; else thd.Text = null;
                 }
                 void W_Update()
                 {
