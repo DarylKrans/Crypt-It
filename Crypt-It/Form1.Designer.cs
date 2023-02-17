@@ -1,6 +1,6 @@
 ﻿namespace Crypt_It
 {
-    partial class Form1
+    partial class Crypt_It
     {
         /// <summary>
         /// Required designer variable.
@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Crypt_It));
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
             this.OpenFile = new System.Windows.Forms.Button();
             this.FN = new System.Windows.Forms.Label();
