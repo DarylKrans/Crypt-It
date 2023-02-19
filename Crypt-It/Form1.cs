@@ -29,8 +29,8 @@ using System.Windows.Forms;
 ///  (done)  Add threading to the encryption process for extra speed
 ///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source)
 ///  (done)  Add batch file processing
-///  (done)  Added drag and drop file processing (debug - allows files inside folders to be added,
-///             currently only files in root of folder are allowed. Sub folders excluded from list)
+///  (done)  Added drag and drop file processing (Also supports files in subfolders now)
+///  (done)  Added update interval timer to prevent large # of small files from slowing down the program with constant updates
 ///          Possibly add more steps to the encryption process
 
 
@@ -43,7 +43,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.6.3";
+        readonly string Version = "v0.7.1";
         /// These setting for debugging purposes
         readonly bool b_Set_Cores = false; // override automatic core detection for threading
         readonly int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -52,7 +52,8 @@ namespace Crypt_It
         bool b_Reverse = false; // don't mess with this (just use the "decrypt" button)
         /// ------- Personal Preference --------
         readonly bool b_Hide = false;  // set to true to hide output file(s) during encrypt/decrypt process
-        readonly bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
+        readonly bool b_DelSource = true;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
+        readonly long ut = 250; // sets update interval in miliseconds
         /// -------- program variables ---------
         bool b_LC = false;
         bool b_Working = false;
@@ -111,6 +112,8 @@ namespace Crypt_It
             var def = this.Text;
             long TotalLength = 0;
             Start_Working(true);
+                long fu2 = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                long fu = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
@@ -141,7 +144,7 @@ namespace Crypt_It
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
-                        this.Invoke(new Action(() => W_Update()));
+                        if (fu >= fu2) this.Invoke(new Action(() => W_Update()));
                         long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         i_Cores = Environment.ProcessorCount - 1;
                         if (b_Set_Cores) { if (i_CoreVal > 0) i_Cores = i_CoreVal - 1; else i_Cores = 0; }
@@ -180,7 +183,12 @@ namespace Crypt_It
                                 for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
                                 for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
-                                this.Invoke(new Action(() => Progress_Update()));
+                                fu2 = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                                if (fu2 >= fu)
+                                {
+                                    fu += ut;
+                                    this.Invoke(new Action(() => Progress_Update()));
+                                }
                             }
                         }
                     Loopend:
@@ -399,22 +407,25 @@ namespace Crypt_It
                 FN.Visible = SZ.Visible = Fsize.Visible = true;
                 if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) Enable_Passwd();
             }
-            if (s_PasswdConf.Length > 0)
+            if (!b_Working)
             {
-                Match.Visible = (!b_Reverse);
-                if (m)
+                if (s_PasswdConf.Length > 0)
                 {
-                    if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) Start.Enabled = true;
-                    Match.Text = "Match";
-                    Match.ForeColor = Color.Silver;
-                }
-                else
-                {
-                    Match.ForeColor = Color.Red;
-                    Match.Text = "No Match";
-                    Start.Enabled = false;
-                }
-            }
+                    Match.Visible = (!b_Reverse);
+                    if (m)
+                    {
+                        if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) Start.Enabled = true;
+                        Match.Text = "Match";
+                        Match.ForeColor = Color.Silver;
+                    }
+                    else
+                    {
+                        Match.ForeColor = Color.Red;
+                        Match.Text = "No Match";
+                        Start.Enabled = false;
+                    }
+                } 
+            } else Pass.Enabled = PassC.Enabled = false;
             void Enable_Passwd()
             {
                 PassC.Enabled = Pass.Enabled = true;
@@ -618,16 +629,16 @@ namespace Crypt_It
                         DFiles[x] = file;
                         x++;
                     }
-                    else Ffiles = Directory.GetFiles(file);
+                    else Ffiles = Directory.GetFiles(file, "*", SearchOption.AllDirectories);
                     var FolderFiles = new string[Ffiles.Length];
                     s_DropFiles = new string[x + Ffiles.Length];
                     for (int i = 0; i < x; i++)
                     {
                         s_DropFiles[i] = DFiles[i];
                     }
-                    for (int i = 0 + x; i < Ffiles.Length + x; i++) 
+                    for (int i = 0; i < Ffiles.Length; i++) 
                     {
-                        s_DropFiles[i] = Ffiles[i - x];
+                        s_DropFiles[i + x] = Ffiles[i];
                     }
                 }
                 if (s_DropFiles.Length == 0)
