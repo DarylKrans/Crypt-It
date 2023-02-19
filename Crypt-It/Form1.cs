@@ -9,7 +9,7 @@ using System.Windows.Forms;
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 18th 2023                       //
+//     Latest revision Feb 19th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -29,6 +29,8 @@ using System.Windows.Forms;
 ///  (done)  Add threading to the encryption process for extra speed
 ///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source)
 ///  (done)  Add batch file processing
+///  (debg)  Added drag and drop file processing (debug - allow files inside folders to be added,
+///          currently not allowed. Folders excluded from list)
 ///          Possibly add more steps to the encryption process
 
 
@@ -41,7 +43,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.6.2";
+        readonly string Version = "v0.6.3";
         /// These setting for debugging purposes
         readonly bool b_Set_Cores = false; // override automatic core detection for threading
         readonly int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -61,6 +63,7 @@ namespace Crypt_It
         bool b_OverwriteChecked = false;
         string[] s_NewFile = new string[0];
         string[] s_OutFile = new string[0];
+        string[] s_DropFiles = new string[0];
         string s_Password;
         string s_PasswdConf;
         byte[][] bt_Output = new byte[0][];
@@ -81,6 +84,10 @@ namespace Crypt_It
             this.Text = $"{Program} {Version}";
             if (i_CoreVal < 1) i_CoreVal = 1;
             Options();
+            this.AllowDrop = true;
+            Clear_Info();
+            this.DragEnter += new DragEventHandler(Crypt_It_DragEnter);
+            this.DragDrop += new DragEventHandler(Crypt_It_DragDrop);
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         void Start_Working(bool a)
@@ -91,8 +98,10 @@ namespace Crypt_It
         void Clear_Info()
         {
             s_NewFile = new string[0];
+            s_DropFiles = new string[1];
+            s_DropFiles[0] = "";
             l_FileSize = new long[0];
-            PBar.Value= 0;
+            PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             b_Reverse = b_Cancel = Dec.Checked = b_Overwrite = b_OverwriteChecked = b_Yclick = false;
         }
@@ -190,7 +199,8 @@ namespace Crypt_It
                         if (b_Timer)
                         {
                             long msf = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                            this.Invoke(new Action(() => this.Text = (msf - ms).ToString()));
+                            this.Invoke(new Action(() => this.Text = $"completed in {decimal.Divide((msf - ms), 1000):f2} seconds"));
+                            Thread.Sleep(4000);
                         }
                         l_FileSize[FileNum] = 0;
                         if (!b_Cancel && b_Hide) Set_File_Hidden(s_OutFile[FileNum], "u");
@@ -244,7 +254,7 @@ namespace Crypt_It
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
                             DialogResult result = MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
                                 , buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-                            b_Yclick = (result == DialogResult.Yes) ? (result == DialogResult.No)? false : true : false;
+                            b_Yclick = (result == DialogResult.Yes) ? (result == DialogResult.No) ? false : true : false;
                             if (result == DialogResult.Cancel)
                             {
                                 Stream?.Close();
@@ -316,7 +326,6 @@ namespace Crypt_It
             byte[] Shift(byte[] dat, long step)
             {
                 int r = 0; if (b_Reverse) r = 1;
-                int h = 0;
                 ulong g;
                 var buffer = new MemoryStream();
                 var write = new BinaryWriter(buffer);
@@ -324,9 +333,8 @@ namespace Crypt_It
                 {
                     for (int x = 0; x < (length >> 3); x++) // code to bitshift unsigned long's (64-bit)
                     {
-                        g = (x % 2 == r) ? RotateRight(BitConverter.ToUInt64(dat, x << 3), skey[h]) :
-                            RotateLeft(BitConverter.ToUInt64(dat, x << 3), skey[h]);
-                        h = (h < skey.Length - 1) ? h + 1 : 0;
+                        g = (x % 2 == r) ? RotateRight(BitConverter.ToUInt64(dat, x << 3), skey[x % skey.Length]) :
+                            RotateLeft(BitConverter.ToUInt64(dat, x << 3), skey[x % skey.Length]);
                         write.Write(BitConverter.GetBytes(g));
                     }
                 }
@@ -425,27 +433,39 @@ namespace Crypt_It
         }
         void Filter_Files()
         {
-            if (Dec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
-            else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
-            openFileDialog1.FileName = "";
-            openFileDialog1.Title = "Open file to encrypt";
-            this.openFileDialog1.Multiselect = true;
-            openFileDialog1.ShowDialog();
-            if (openFileDialog1.FileName.Length > 0) Sort(); else Clear_Info();
-            if (s_NewFile.Length == 0) Clear_Info();
+            if (s_DropFiles[0] == "")
+            {
+                if (Dec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
+                else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
+                openFileDialog1.FileName = "";
+                openFileDialog1.Title = "Open file to encrypt";
+                this.openFileDialog1.Multiselect = true;
+                openFileDialog1.ShowDialog();
+                if (openFileDialog1.FileName.Length > 0)
+                {
+                    s_DropFiles = openFileDialog1.FileNames;
+                    Sort();
+                }
+                else Clear_Info();
+                if (s_NewFile.Length == 0) Clear_Info();
+            }
+            if (s_DropFiles.Length >= 1 && s_DropFiles[0] != "no files") Sort();
+            else Clear_Info();
             Options();
             this.ActiveControl = Pass;
             void Sort()
             {
-                var l = openFileDialog1.FileNames.Length;
+                var l = 0;
+                if (s_DropFiles[0] != "" && s_DropFiles[0] != "no files") l = s_DropFiles.Length;
+                else l = 0;
                 int x = 0; l_tot = 0;
                 string[] temp = new string[l];
                 long[] temp2 = new long[l];
                 bool b_CryptFile = true;
                 for (int i = 0; i < l; i++)
                 {
-                    var s = new System.IO.FileInfo(openFileDialog1.FileNames[i]).Length;
-                    if (s > 0) { temp[x] = openFileDialog1.FileNames[i]; temp2[x] = s; x++; }
+                    var s = new System.IO.FileInfo(s_DropFiles[i]).Length;
+                    if (s > 0) { temp[x] = s_DropFiles[i]; temp2[x] = s; x++; }
                 }
                 if (x > 0)
                 {
@@ -576,6 +596,39 @@ namespace Crypt_It
         private static string Trunc(string value, int maxChars)
         {
             return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}...{value.Substring(value.Length - (maxChars), maxChars)}";
+        }
+        void Crypt_It_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
+        }
+
+        void Crypt_It_DragDrop(object sender, DragEventArgs e)
+        {
+            if (!b_Working)
+            {
+                int x = 0;
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var DFiles = new string[files.Length];
+                foreach (string file in files)
+                {
+                    if (!Directory.Exists(file))
+                    {
+                        DFiles[x] = file;
+                        x++;
+                    }
+                    s_DropFiles = new string[x];
+                    for (int i = 0; i < x; i++)
+                    {
+                        s_DropFiles[i] = DFiles[i];
+                    }
+                }
+                if (s_DropFiles.Length == 0)
+                {
+                    s_DropFiles = new string[1];
+                    s_DropFiles[0] = "no files";
+                }
+                Filter_Files();
+            }
         }
     }
 
