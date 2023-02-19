@@ -6,6 +6,22 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+/////////////////////////////////////////////////////////////
+//     Crypt-It by Daryl Krans                             //
+//     Started on Feb 8th 2023                             //
+//     Latest revision Feb 18th 2023                       //
+/////////////////////////////////////////////////////////////
+
+///
+/// Crypt-It is a light-weight high performance file encryption program. It uses seed based encryption keys. The seed is generated
+/// using the password inputted by the user.  That unique seed is used to generate encryption keys for the XOR function and the
+/// Bit-Rotate function.  
+/// 
+/// The data is read from the source file, XORed, Rotated, and XORed again before being written to a .crypt file
+/// If a .crypt file is selected as the source, the Bit-Rotate funciton is reversed to reconstruct the original data. Both XOR
+/// operations do not need to be reversed since the key used is the same for both XOR operations
+/// 
+///
 /// THINGS TO DO!!
 ///
 ///  (done)  Fix the password generation to ensure no two different passwords yield the same seed
@@ -13,10 +29,8 @@ using System.Windows.Forms;
 ///  (done)  Add threading to the encryption process for extra speed
 ///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source)
 ///  (done)  Add batch file processing
-///          Add an options menu to toggle single/batch mode, keep/delete source when done and maybe some other options
-//           // single/batch mode currently is automatic.  Might just leave it that way
 ///          Possibly add more steps to the encryption process
-///          Try to make decryption process the same as encryption without reversing it
+
 
 /// 🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊 Fancy if/else statement 🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
 //            //  if c = 7 then fox = 6, c = 9 then fox = 9 else fox = 8
@@ -27,7 +41,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.6.1";
+        readonly string Version = "v0.6.2";
         /// These setting for debugging purposes
         readonly bool b_Set_Cores = false; // override automatic core detection for threading
         readonly int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -50,6 +64,9 @@ namespace Crypt_It
         string s_Password;
         string s_PasswdConf;
         byte[][] bt_Output = new byte[0][];
+        byte[] by_LKey = new byte[0];
+        byte[] by_bKey = new byte[0];
+        byte[] by_XorKey = new byte[0];
         int i_B = 0;  // Don't click the "show text" button too many times. (You've been warned!)
         int i_TotalFiles;
         int i_Cores;
@@ -71,11 +88,6 @@ namespace Crypt_It
             OpenFile.Enabled = Pass.Enabled = PassC.Enabled = Start.Enabled = Dec.Visible = !a;
             PBar.Visible = b_Working = Cancel.Visible = a;
         }
-        private static string Trunc(string value, int maxChars)
-        {
-            return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}...{value.Substring(value.Length - (maxChars), maxChars)}";
-        }
-
         void Clear_Info()
         {
             s_NewFile = new string[0];
@@ -84,45 +96,11 @@ namespace Crypt_It
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             b_Reverse = b_Cancel = Dec.Checked = b_Overwrite = b_OverwriteChecked = b_Yclick = false;
         }
-        async void Process_File()
+        async void Process_File_List()
         {
+            (by_LKey, by_bKey, by_XorKey) = Make_Keys();
             var def = this.Text;
             long TotalLength = 0;
-            // ---- Make encryption keys from password ------------------------------------------------- //
-            byte[] pwd = Encoding.ASCII.GetBytes(s_Password);
-            Random pass = new Random(pwd[0]);
-            int seed = 1;
-            for (int i = 0; i < pwd.Length; i++)
-            {
-                var o = pass.Next(255);
-                var x = pass.Next(1, 255);
-                var d = pass.Next(0, 4);
-                switch (d)
-                {
-                    case 0: seed += seed + (pwd[i] ^ o) * x; break;
-                    case 1: seed += seed / (pwd[i] - o) ^ x; break;
-                    case 2: seed += seed ^ (pwd[i] * o) / x; break;
-                    case 3: seed += seed * (pwd[i] + o) - x; break;
-                }
-            }
-            seed = Math.Abs(seed);
-            /// WARNING!! /// Decrypting files that were encrypted with a different kLen value will result in corrupted data!
-            var KeyLen = 512;             // change encryption key length (multiples of 8 recommended)
-            byte[] lKey = new byte[KeyLen];
-            byte[] bKey = new byte[8];  // vaule MUST be at least 8, maybe 7.  Higher than 8 is pointless
-            byte[] xorKey = new byte[KeyLen];
-            for (int i = 0; i < pwd.Length; i++)
-            {
-                seed += (pwd[i]);
-            }
-            Random rand = new Random(seed);
-            for (int i = 0; i < KeyLen; i++)
-            {
-                lKey[i] = (byte)rand.Next(1, 64); // generates 128 (kLen = 128) variables for bit-shifting Ulong's (64-bit integers)
-                if (i < 8) bKey[i] = (byte)rand.Next(1, 8);
-                xorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
-            }
-            // ------ END make encryption keys ------------- START  break file into segments ----------- //
             Start_Working(true);
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
@@ -157,7 +135,8 @@ namespace Crypt_It
                         this.Invoke(new Action(() => W_Update()));
                         long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                         i_Cores = Environment.ProcessorCount - 1;
-                        i_Cores = (b_Set_Cores && i_CoreVal > 0) ? (!b_Set_Cores && i_Cores > 5) ? 0 : i_CoreVal - 1 : i_Cores /= 2;
+                        if (b_Set_Cores) { if (i_CoreVal > 0) i_Cores = i_CoreVal - 1; else i_Cores = 0; }
+                        else if (i_Cores > 5) i_Cores /= 2;
                         // -----------------------------------------------------------------------------
                         for (long step = 0; step < 3; step++)
                         {
@@ -186,14 +165,12 @@ namespace Crypt_It
                                 for (int x = 0; x <= i_Cores; x++)
                                 {
                                     var xx = x;
-                                    enc[x] = new Thread(() => { Encrypt(chunk[xx], lKey, bKey, xorKey, length, step, xx); });
+                                    enc[x] = new Thread(() => { Encrypt(chunk[xx], by_LKey, by_bKey, by_XorKey, length, step, xx); });
                                     enc[x].Start();
                                 }
-                                // --- wait for worker threads to complete before continuing --------
-                                for (int x = 0; x <= i_Cores; x++) enc[x].Join();
-                                // --- write finished workload to file -------------------------------
-                                for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
+                                for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
+                                for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
                                 this.Invoke(new Action(() => Progress_Update()));
                             }
                         }
@@ -267,7 +244,7 @@ namespace Crypt_It
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
                             DialogResult result = MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
                                 , buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-                            b_Yclick = (result == DialogResult.Yes)? (result == DialogResult.No)? false : true: false;
+                            b_Yclick = (result == DialogResult.Yes) ? (result == DialogResult.No)? false : true : false;
                             if (result == DialogResult.Cancel)
                             {
                                 Stream?.Close();
@@ -305,12 +282,12 @@ namespace Crypt_It
                 {
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
+                    PBar.Update();
                     this.Text = def + $" ({prog:f1}%)";
                     if (i_TotalFiles > 1)
                     {
                         Fname.Text = $"(File {s_NewFile.Length - FileNum}) {Trunc(s_NewFile[FileNum], 42)}";
                     }
-                    PBar.Update();
                     Fsize.Text = $"{(l_tot - TotalLength) >> 10:N0} kb remaining.";
                     if (b_MultiThread) thd.Text = $"(Multi-Threaded x{i_Cores + 1})"; else thd.Text = null;
                 }
@@ -335,6 +312,7 @@ namespace Crypt_It
         void Encrypt(byte[] DataIn, byte[] skey, byte[] rkey, byte[] xor, long length, long r1, int o)
         {
             bt_Output[o] = XOR(Shift(XOR(DataIn, xor), r1), xor);
+
             byte[] Shift(byte[] dat, long step)
             {
                 int r = 0; if (b_Reverse) r = 1;
@@ -445,7 +423,7 @@ namespace Crypt_It
             if (!CheckBox1.Checked) { Pass.PasswordChar = PassC.PasswordChar = '\u25CF'; CheckBox1.Text = "Show Text"; }
             else { Pass.PasswordChar = PassC.PasswordChar = '\0'; CheckBox1.Text = "Hide Text"; }
         }
-        private void OpenFile_Click(object sender, EventArgs e)
+        void Filter_Files()
         {
             if (Dec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
             else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
@@ -499,6 +477,10 @@ namespace Crypt_It
                 b_Reverse = Dec.Checked = (b_CryptFile);
             }
         }
+        private void OpenFile_Click(object sender, EventArgs e)
+        {
+            Filter_Files();
+        }
         private void CheckBox1_CheckedChanged(object sender, EventArgs e)
         {
             if (!b_Working) Options();
@@ -534,7 +516,7 @@ namespace Crypt_It
         }
         private void Start_Click(object sender, EventArgs e)
         {
-            Process_File();
+            Process_File_List();
         }
         private void Cancel_Click(object sender, EventArgs e)
         {
@@ -554,5 +536,47 @@ namespace Crypt_It
             b_Reverse = !b_Reverse;
             Options();
         }
+        private (byte[], byte[], byte[]) Make_Keys()
+        {
+            byte[] pwd = Encoding.ASCII.GetBytes(s_Password);
+            Random pass = new Random(pwd[0]);
+            int seed = 1;
+            for (int i = 0; i < pwd.Length; i++)
+            {
+                var o = pass.Next(255);
+                var x = pass.Next(1, 255);
+                var d = pass.Next(0, 4);
+                switch (d)
+                {
+                    case 0: seed += seed + (pwd[i] ^ o) * x; break;
+                    case 1: seed += seed / (pwd[i] - o) ^ x; break;
+                    case 2: seed += seed ^ (pwd[i] * o) / x; break;
+                    case 3: seed += seed * (pwd[i] + o) - x; break;
+                }
+            }
+            seed = Math.Abs(seed);
+            /// WARNING!! /// Decrypting files that were encrypted with a different kLen value will result in corrupted data!
+            var KeyLen = 512;             // change encryption key length (multiples of 8 recommended)
+            var LKey = new byte[KeyLen];
+            var bKey = new byte[8];  // vaule MUST be at least 8, maybe 7.  Higher than 8 is pointless
+            var XorKey = new byte[KeyLen];
+            for (int i = 0; i < pwd.Length; i++)
+            {
+                seed += (pwd[i]);
+            }
+            Random rand = new Random(seed);
+            for (int i = 0; i < KeyLen; i++)
+            {
+                LKey[i] = (byte)rand.Next(1, 64); // generates 128 (kLen = 128) variables for bit-shifting Ulong's (64-bit integers)
+                if (i < 8) bKey[i] = (byte)rand.Next(1, 8);
+                XorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
+            }
+            return (LKey, bKey, XorKey);
+        }
+        private static string Trunc(string value, int maxChars)
+        {
+            return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}...{value.Substring(value.Length - (maxChars), maxChars)}";
+        }
     }
+
 }
