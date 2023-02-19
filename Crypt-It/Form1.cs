@@ -29,8 +29,8 @@ using System.Windows.Forms;
 ///  (done)  Add threading to the encryption process for extra speed
 ///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source)
 ///  (done)  Add batch file processing
-///  (debg)  Added drag and drop file processing (debug - allow files inside folders to be added,
-///          currently not allowed. Folders excluded from list)
+///  (done)  Added drag and drop file processing (debug - allows files inside folders to be added,
+///             currently only files in root of folder are allowed. Sub folders excluded from list)
 ///          Possibly add more steps to the encryption process
 
 
@@ -494,7 +494,8 @@ namespace Crypt_It
                     s_OutFile = new string[x];
                     i_TotalFiles = x;
                 }
-                b_Reverse = Dec.Checked = (b_CryptFile);
+                if (b_CryptFile && l_tot > 0) b_Reverse = Dec.Checked = true;
+                else b_Reverse= Dec.Checked = false;
             }
         }
         private void OpenFile_Click(object sender, EventArgs e)
@@ -608,6 +609,7 @@ namespace Crypt_It
             {
                 int x = 0;
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                string[] Ffiles = new string[0];
                 var DFiles = new string[files.Length];
                 foreach (string file in files)
                 {
@@ -616,10 +618,16 @@ namespace Crypt_It
                         DFiles[x] = file;
                         x++;
                     }
-                    s_DropFiles = new string[x];
+                    else Ffiles = Directory.GetFiles(file);
+                    var FolderFiles = new string[Ffiles.Length];
+                    s_DropFiles = new string[x + Ffiles.Length];
                     for (int i = 0; i < x; i++)
                     {
                         s_DropFiles[i] = DFiles[i];
+                    }
+                    for (int i = 0 + x; i < Ffiles.Length + x; i++) 
+                    {
+                        s_DropFiles[i] = Ffiles[i - x];
                     }
                 }
                 if (s_DropFiles.Length == 0)
