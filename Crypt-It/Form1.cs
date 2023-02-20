@@ -31,28 +31,24 @@ using System.Windows.Forms;
 ///  (done)  Add batch file processing
 ///  (done)  Added drag and drop file processing (Also supports files in subfolders now)
 ///  (done)  Added update interval timer to prevent large # of small files from slowing down the program with constant updates
+///  (done)  Added menu strip for ease of use.  Looks cleaner than individual buttons and adds easier access to adjustable options
 ///          Possibly add more steps to the encryption process
-
-
-/// 🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊 Fancy if/else statement 🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
-//            //  if c = 7 then fox = 6, c = 9 then fox = 9 else fox = 8
-//            fox = c == 7? c == 9 ? 6 : 9 : 8;
 
 namespace Crypt_It
 {
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.7.1";
-        /// These setting for debugging purposes
-        readonly bool b_Set_Cores = false; // override automatic core detection for threading
-        readonly int i_CoreVal = 4; // set number of cpu cores to use for threading
-        readonly bool b_Timer = false; // set to true to show time it took to complete the encrypt/decrypt process 
-        readonly bool b_TestFile = false; // set to true to set the output file to C:\testfile.(bin/crypt)
+        readonly string Version = "v0.8.3";
+        /// These setting for debugging purposes (All are available in the options menu. b_Reverse is available in File menu as "Decrypt")
+        bool b_Set_Cores = false; // override automatic core detection for threading
+        int i_CoreVal = 4; // set number of cpu cores to use for threading
+        bool b_Timer = false; // set to true to show time it took to complete the encrypt/decrypt process 
+        bool b_TestFile = false; // set to true to set the output file to C:\testfile.(bin/crypt)
         bool b_Reverse = false; // don't mess with this (just use the "decrypt" button)
         /// ------- Personal Preference --------
         readonly bool b_Hide = false;  // set to true to hide output file(s) during encrypt/decrypt process
-        readonly bool b_DelSource = true;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
+        bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
         readonly long ut = 250; // sets update interval in miliseconds
         /// -------- program variables ---------
         bool b_LC = false;
@@ -62,6 +58,7 @@ namespace Crypt_It
         bool b_Overwrite = false;
         bool b_Yclick = false;
         bool b_OverwriteChecked = false;
+        bool b_msDCHK = false;
         string[] s_NewFile = new string[0];
         string[] s_OutFile = new string[0];
         string[] s_DropFiles = new string[0];
@@ -74,8 +71,10 @@ namespace Crypt_It
         int i_B = 0;  // Don't click the "show text" button too many times. (You've been warned!)
         int i_TotalFiles;
         int i_Cores;
+        int l;
         long[] l_FileSize = new long[0];
         long l_tot;
+
 
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
@@ -91,10 +90,67 @@ namespace Crypt_It
             this.DragDrop += new DragEventHandler(Crypt_It_DragDrop);
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
+        public class Prompt // Prompt window configuration
+        {
+
+            public static int ShowDialog(string text, string caption, int cv)
+            {
+                Form prompt = new Form
+                {
+                    Width = 200,
+                    Height = 120,
+                    FormBorderStyle = FormBorderStyle.FixedDialog,
+                    Text = caption,
+                    StartPosition = FormStartPosition.CenterScreen,
+                    ControlBox = false
+                };
+                Label textLabel = new Label() { Left = 35, Top = 18, Text = text };
+                NumericUpDown textBox = new NumericUpDown
+                {
+                    Left = 75,
+                    Top = 15,
+                    Width = 50,
+                    Value = cv,
+                    Maximum = 255,
+                    Minimum = 1
+                };
+                Button confirmation = new Button()
+                {
+                    Text = "Ok",
+                    Left = 30,
+                    Width = 50,
+                    Top = 40,
+                    DialogResult = DialogResult.OK
+                };
+                Button cancel = new Button()
+                {
+                    Text = "Cancel",
+                    Left = 80,
+                    Width = 65,
+                    Top = 40,
+                    DialogResult = DialogResult.Cancel
+                };
+                confirmation.Click += (sender, e) => { prompt.Close(); };
+                prompt.Controls.Add(textBox);
+                prompt.Controls.Add(confirmation);
+                prompt.Controls.Add(cancel);
+                prompt.Controls.Add(textLabel);
+                prompt.AcceptButton = confirmation;
+                prompt.CancelButton = cancel;
+                var c = 0;
+                if (prompt.ShowDialog() == DialogResult.OK) c = (int)textBox.Value;
+                else c = cv;
+                return c;
+            }
+
+        }
         void Start_Working(bool a)
         {
-            OpenFile.Enabled = Pass.Enabled = PassC.Enabled = Start.Enabled = Dec.Visible = !a;
-            PBar.Visible = b_Working = Cancel.Visible = a;
+            Pass.Enabled = PassC.Enabled = !a;
+            PBar.Visible = b_Working = a;
+            fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled = msClear.Visible = !a;
+            if (a) startToolStripMenuItem.Text = "Cancel";
+            else startToolStripMenuItem.Text = "Start";
         }
         void Clear_Info()
         {
@@ -104,7 +160,8 @@ namespace Crypt_It
             l_FileSize = new long[0];
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
-            b_Reverse = b_Cancel = Dec.Checked = b_Overwrite = b_OverwriteChecked = b_Yclick = false;
+            if (!b_msDCHK) b_Reverse = msDec.Checked = msClear.Visible = false;
+            b_Overwrite = b_OverwriteChecked = b_Yclick = this.startToolStripMenuItem.Enabled = b_Cancel = false;
         }
         async void Process_File_List()
         {
@@ -112,8 +169,9 @@ namespace Crypt_It
             var def = this.Text;
             long TotalLength = 0;
             Start_Working(true);
-                long fu2 = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                long fu = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
+            long Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            long Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
+            long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
@@ -144,8 +202,7 @@ namespace Crypt_It
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
-                        if (fu >= fu2) this.Invoke(new Action(() => W_Update()));
-                        long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                        if (Update_Interval >= Cur_Time) this.Invoke(new Action(() => W_Update()));
                         i_Cores = Environment.ProcessorCount - 1;
                         if (b_Set_Cores) { if (i_CoreVal > 0) i_Cores = i_CoreVal - 1; else i_Cores = 0; }
                         else if (i_Cores > 5) i_Cores /= 2;
@@ -183,10 +240,10 @@ namespace Crypt_It
                                 for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
                                 for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
-                                fu2 = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                                if (fu2 >= fu)
+                                Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                                if (Cur_Time >= Update_Interval | TotalLength == l_tot)
                                 {
-                                    fu += ut;
+                                    Update_Interval += ut;
                                     this.Invoke(new Action(() => Progress_Update()));
                                 }
                             }
@@ -204,13 +261,13 @@ namespace Crypt_It
                             catch { }
                         }
                         if (i_Cores == 0) this.Invoke(new Action(() => thd.Text = ""));
-                        if (b_Timer)
+                        if (b_Timer && FileNum == i_TotalFiles - 1)
                         {
                             long msf = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                             this.Invoke(new Action(() => this.Text = $"completed in {decimal.Divide((msf - ms), 1000):f2} seconds"));
                             Thread.Sleep(4000);
                         }
-                        l_FileSize[FileNum] = 0;
+                        if (l_FileSize.Length >= FileNum && l_FileSize.Length > 0) l_FileSize[FileNum] = 0;
                         if (!b_Cancel && b_Hide) Set_File_Hidden(s_OutFile[FileNum], "u");
                         if (!b_Cancel && b_DelSource && b_Overwrite)
                         {
@@ -220,7 +277,7 @@ namespace Crypt_It
                             }
                             catch { }
                         }
-                        if (FileNum == i_TotalFiles - 1)
+                        if (FileNum == i_TotalFiles)
                         {
                             this.Invoke(new Action(() => Start_Working(false)));
                             this.Invoke(new Action(() => Clear_Info()));
@@ -228,7 +285,7 @@ namespace Crypt_It
                         }
                         if (b_Cancel)
                         {
-                            b_DoWork = false; FileNum = i_TotalFiles; this.Invoke(new Action(() => this.Text = def));
+                            b_DoWork = false; FileNum = i_TotalFiles - 1; this.Invoke(new Action(() => this.Text = def));
                         }
                     });
                     /// ----------------- end Asynchronous task --------------------------------
@@ -262,7 +319,8 @@ namespace Crypt_It
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
                             DialogResult result = MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
                                 , buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
-                            b_Yclick = (result == DialogResult.Yes) ? (result == DialogResult.No) ? false : true : false;
+                            if (result == DialogResult.Yes) b_Yclick = true;
+                            if (result == DialogResult.No) b_Yclick = false;
                             if (result == DialogResult.Cancel)
                             {
                                 Stream?.Close();
@@ -304,18 +362,16 @@ namespace Crypt_It
                     this.Text = def + $" ({prog:f1}%)";
                     if (i_TotalFiles > 1)
                     {
-                        Fname.Text = $"(File {s_NewFile.Length - FileNum}) {Trunc(s_NewFile[FileNum], 42)}";
+                        var c = CountDigits(i_TotalFiles - FileNum);
+                        Fname.Text = $"(File {s_NewFile.Length - FileNum}) {Trunc(s_NewFile[FileNum], 42 - c)}";
                     }
                     Fsize.Text = $"{(l_tot - TotalLength) >> 10:N0} kb remaining.";
                     if (b_MultiThread) thd.Text = $"(Multi-Threaded x{i_Cores + 1})"; else thd.Text = null;
                 }
                 void W_Update()
                 {
-                    OpenFile.Update();
                     Pass.Update();
                     PassC.Update();
-                    Cancel.Update();
-                    Start.Update();
                 }
                 byte[] Read_Data(long offset, int len)
                 {
@@ -325,6 +381,16 @@ namespace Crypt_It
                     return dat;
                 }
             }
+        }
+        static int CountDigits(long MyNum)
+        {
+            int count = 0;
+            while (MyNum != 0)
+            {
+                MyNum /= 10;
+                count++;
+            }
+            return count;
         }
         /// ------------------------------------ Actual code for Encrytion process --------------------------------------- ///
         void Encrypt(byte[] DataIn, byte[] skey, byte[] rkey, byte[] xor, long length, long r1, int o)
@@ -372,26 +438,23 @@ namespace Crypt_It
         /// --------------------------------------- End encrytion process ------------------------------------------ ///
         void LockProgram() // This was just for fun.  A little hidden joke.
         {
-            Start.Enabled = Cancel.Enabled = OpenFile.Enabled = Pass.Enabled =
-                PassC.Enabled = CheckBox1.Enabled = Dec.Visible = this.ControlBox = false;
+            startToolStripMenuItem.Enabled = Pass.Enabled = PassC.Enabled = CheckBox1.Enabled = msClear.Enabled =
+                ControlBox = optionsToolStripMenuItem.Enabled = fileToolStripMenuItem.Enabled = false;
             if (b_LC)
             {
-                Sorry.Visible = false;
+                msSorry.Visible = false;
                 this.Text = "Program LOCKED. You're done!";
                 while (1 == 1) Console.Beep(4000, 1000);
             }
             else
             {
                 this.Text = "Do you deserver another chance?";
-                Sorry.Visible = true;
+                msSorry.Visible = true;
             }
         }
         void Options()
         {
-            if (b_Working)
-            { Cancel.Visible = true; Dec.Enabled = false; }
-            else { Cancel.Visible = false; Dec.Enabled = true; }
-            Match.Visible = Start.Enabled = Sorry.Visible = false;
+            Match.Visible = startToolStripMenuItem.Enabled = msSorry.Visible = false;
             s_Password = Pass.Text;
             if (b_Reverse)
             { PassC.Visible = label2.Visible = false; s_PasswdConf = s_Password; }
@@ -404,7 +467,7 @@ namespace Crypt_It
                 FN.Visible = SZ.Visible = PBar.Visible = Fname.Visible = Fsize.Visible = false;
             else
             {
-                FN.Visible = SZ.Visible = Fsize.Visible = true;
+                FN.Visible = SZ.Visible = Fsize.Visible = msClear.Visible = true;
                 if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) Enable_Passwd();
             }
             if (!b_Working)
@@ -414,7 +477,7 @@ namespace Crypt_It
                     Match.Visible = (!b_Reverse);
                     if (m)
                     {
-                        if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) Start.Enabled = true;
+                        if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) startToolStripMenuItem.Enabled = true;
                         Match.Text = "Match";
                         Match.ForeColor = Color.Silver;
                     }
@@ -422,10 +485,11 @@ namespace Crypt_It
                     {
                         Match.ForeColor = Color.Red;
                         Match.Text = "No Match";
-                        Start.Enabled = false;
+                        startToolStripMenuItem.Enabled = false;
                     }
-                } 
-            } else Pass.Enabled = PassC.Enabled = false;
+                }
+            }
+            else Pass.Enabled = PassC.Enabled = false;
             void Enable_Passwd()
             {
                 PassC.Enabled = Pass.Enabled = true;
@@ -446,11 +510,10 @@ namespace Crypt_It
         {
             if (s_DropFiles[0] == "")
             {
-                if (Dec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
+                if (b_Reverse && msDec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
                 else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
                 openFileDialog1.FileName = "";
                 openFileDialog1.Title = "Open file to encrypt";
-                this.openFileDialog1.Multiselect = true;
                 openFileDialog1.ShowDialog();
                 if (openFileDialog1.FileName.Length > 0)
                 {
@@ -466,7 +529,6 @@ namespace Crypt_It
             this.ActiveControl = Pass;
             void Sort()
             {
-                var l = 0;
                 if (s_DropFiles[0] != "" && s_DropFiles[0] != "no files") l = s_DropFiles.Length;
                 else l = 0;
                 int x = 0; l_tot = 0;
@@ -496,7 +558,7 @@ namespace Crypt_It
                     if (s_NewFile.Length > 1) { Fname.Text = $"Batch file process ({s_NewFile.Length}) files."; Fname.Visible = true; }
                     if (s_NewFile.Length >= 1) { Fsize.Text = $"{l_tot >> 10:N0}  kb"; Fsize.ForeColor = Color.Silver; }
                     else { Fname.Visible = Fsize.Visible = false; }
-                    b_Reverse = Dec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
+                    b_Reverse = msDec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
                 }
                 else
                 {
@@ -505,13 +567,46 @@ namespace Crypt_It
                     s_OutFile = new string[x];
                     i_TotalFiles = x;
                 }
-                if (b_CryptFile && l_tot > 0) b_Reverse = Dec.Checked = true;
-                else b_Reverse= Dec.Checked = false;
+                if (b_CryptFile && l_tot > 0) b_Reverse = msDec.Checked = true;
+                else b_Reverse = msDec.Checked = false;
             }
         }
-        private void OpenFile_Click(object sender, EventArgs e)
+        private (byte[], byte[], byte[]) Make_Keys()
         {
-            Filter_Files();
+            byte[] pwd = Encoding.ASCII.GetBytes(s_Password);
+            Random pass = new Random(pwd[0]);
+            int seed = 1;
+            for (int i = 0; i < pwd.Length; i++)
+            {
+                var o = pass.Next(255);
+                var x = pass.Next(1, 255);
+                var d = pass.Next(0, 4);
+                switch (d)
+                {
+                    case 0: seed += seed + (pwd[i] ^ o) * x; break;
+                    case 1: seed += seed / (pwd[i] - o) ^ x; break;
+                    case 2: seed += seed ^ (pwd[i] * o) / x; break;
+                    case 3: seed += seed * (pwd[i] + o) - x; break;
+                }
+            }
+            seed = Math.Abs(seed);
+            /// WARNING!! /// Decrypting files that were encrypted with a different kLen value will result in corrupted data!
+            var KeyLen = 512;             // change encryption key length (multiples of 8 recommended)
+            var LKey = new byte[KeyLen];
+            var bKey = new byte[8];  // vaule MUST be at least 8, maybe 7.  Higher than 8 is pointless
+            var XorKey = new byte[KeyLen];
+            for (int i = 0; i < pwd.Length; i++)
+            {
+                seed += (pwd[i]);
+            }
+            Random rand = new Random(seed);
+            for (int i = 0; i < KeyLen; i++)
+            {
+                LKey[i] = (byte)rand.Next(1, 64); // generates 128 (kLen = 128) variables for bit-shifting Ulong's (64-bit integers)
+                if (i < 8) bKey[i] = (byte)rand.Next(1, 8);
+                XorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
+            }
+            return (LKey, bKey, XorKey);
         }
         private void CheckBox1_CheckedChanged(object sender, EventArgs e)
         {
@@ -554,56 +649,10 @@ namespace Crypt_It
         {
             b_Cancel = true;
         }
-        private void Sorry_Click(object sender, EventArgs e)
-        {
-            this.ControlBox = Start.Enabled = Cancel.Enabled = OpenFile.Enabled =
-                Pass.Enabled = PassC.Enabled = CheckBox1.Enabled = Dec.Visible = b_LC = true;
-            Sorry.Visible = false;
-            i_B = 0;
-            this.Text = $"Annoyed-{Program} {Version} (Last Chance)";
-            Options();
-        }
         private void Dec_CheckedChanged(object sender, EventArgs e)
         {
             b_Reverse = !b_Reverse;
             Options();
-        }
-        private (byte[], byte[], byte[]) Make_Keys()
-        {
-            byte[] pwd = Encoding.ASCII.GetBytes(s_Password);
-            Random pass = new Random(pwd[0]);
-            int seed = 1;
-            for (int i = 0; i < pwd.Length; i++)
-            {
-                var o = pass.Next(255);
-                var x = pass.Next(1, 255);
-                var d = pass.Next(0, 4);
-                switch (d)
-                {
-                    case 0: seed += seed + (pwd[i] ^ o) * x; break;
-                    case 1: seed += seed / (pwd[i] - o) ^ x; break;
-                    case 2: seed += seed ^ (pwd[i] * o) / x; break;
-                    case 3: seed += seed * (pwd[i] + o) - x; break;
-                }
-            }
-            seed = Math.Abs(seed);
-            /// WARNING!! /// Decrypting files that were encrypted with a different kLen value will result in corrupted data!
-            var KeyLen = 512;             // change encryption key length (multiples of 8 recommended)
-            var LKey = new byte[KeyLen];
-            var bKey = new byte[8];  // vaule MUST be at least 8, maybe 7.  Higher than 8 is pointless
-            var XorKey = new byte[KeyLen];
-            for (int i = 0; i < pwd.Length; i++)
-            {
-                seed += (pwd[i]);
-            }
-            Random rand = new Random(seed);
-            for (int i = 0; i < KeyLen; i++)
-            {
-                LKey[i] = (byte)rand.Next(1, 64); // generates 128 (kLen = 128) variables for bit-shifting Ulong's (64-bit integers)
-                if (i < 8) bKey[i] = (byte)rand.Next(1, 8);
-                XorKey[i] = (byte)rand.Next(255);   // generates 1024-bit (kLen = 128) XOR key (128 bytes long)
-            }
-            return (LKey, bKey, XorKey);
         }
         private static string Trunc(string value, int maxChars)
         {
@@ -636,7 +685,7 @@ namespace Crypt_It
                     {
                         s_DropFiles[i] = DFiles[i];
                     }
-                    for (int i = 0; i < Ffiles.Length; i++) 
+                    for (int i = 0; i < Ffiles.Length; i++)
                     {
                         s_DropFiles[i + x] = Ffiles[i];
                     }
@@ -649,6 +698,77 @@ namespace Crypt_It
                 Filter_Files();
             }
         }
-    }
+        private void StartToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (b_Working) b_Cancel = true;
+            else Process_File_List();
+        }
+        private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Clear_Info();
+            this.openFileDialog1.Multiselect = false;
+            Filter_Files();
+        }
+        private void BatchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Clear_Info();
+            this.openFileDialog1.Multiselect = true;
+            Filter_Files();
+        }
+        private void DeleteSouceFilesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (b_DelSource) b_DelSource = msDelFile.Checked = false;
+            else b_DelSource = msDelFile.Checked = true;
+        }
+        private void UseTestfileToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if (b_TestFile) b_TestFile = msTestFile.Checked = false;
+            else b_TestFile = msTestFile.Checked = true;
+        }
+        private void Timer_Click(object sender, EventArgs e)
+        {
+            if (b_Timer) b_Timer = msTimer.Checked = false;
+            else b_Timer = msTimer.Checked = true;
+        }
+        private void MsDec_Click(object sender, EventArgs e)
+        {
+            if (b_Reverse) b_Reverse = msDec.Checked = b_msDCHK = false;
+            else b_Reverse = msDec.Checked = b_msDCHK = true;
+            Options();
+        }
+        private void ClearToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            Clear_Info();
+            Options();
+        }
+        private void SorryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.ControlBox = fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled =
+                Pass.Enabled = PassC.Enabled = msClear.Enabled = CheckBox1.Enabled = b_LC = true;
+            msSorry.Visible = false;
+            i_B = 0;
+            this.Text = $"Annoyed-{Program} {Version}";
+            Options();
+        }
+        private void MsThreadAuto_Click(object sender, EventArgs e)
+        {
+            msThreadAuto.Checked = true;
+            b_Set_Cores = msThreadMan.Checked = false;
+        }
 
+        private void SetManuallyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            msThreadAuto.Checked = false;
+            b_Set_Cores = msThreadMan.Checked = true;
+            Set_Cores();
+            void Set_Cores()
+            {
+                i_CoreVal = Prompt.ShowDialog("(1-255)", "Set Thread Count", i_CoreVal);
+            }
+        }
+        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+    }
 }
