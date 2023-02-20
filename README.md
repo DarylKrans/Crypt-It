@@ -21,3 +21,10 @@ file output.
 
 This program is just for fun, so enjoy at your own risk.  Also, if you need to keep something safe from prying eyes, this program will
 certainly do the trick!
+
+**(note to copyright holders)
+If any images in this program are copyrighted, please reach out to me directly to resolve the issue.  I did a quick Google search
+for public domain images and took the images I wanted.  If any images are copyrighted, this was purely unintentional and will be removed
+immediately upon notification of such.  This program is free to everyone.  I do not make any monetary gain from it
+
+Thank you.
