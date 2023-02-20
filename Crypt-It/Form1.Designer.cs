@@ -59,7 +59,7 @@ namespace Crypt_It
             this.msDelFile = new System.Windows.Forms.ToolStripMenuItem();
             this.msTimer = new System.Windows.Forms.ToolStripMenuItem();
             this.msTestFile = new System.Windows.Forms.ToolStripMenuItem();
-            this.startToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.msStart = new System.Windows.Forms.ToolStripMenuItem();
             this.msClear = new System.Windows.Forms.ToolStripMenuItem();
             this.msSorry = new System.Windows.Forms.ToolStripMenuItem();
             this.Menu.SuspendLayout();
@@ -199,7 +199,7 @@ namespace Crypt_It
             this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.optionsToolStripMenuItem,
-            this.startToolStripMenuItem,
+            this.msStart,
             this.msClear,
             this.msSorry});
             this.Menu.Location = new System.Drawing.Point(0, 0);
@@ -327,13 +327,13 @@ namespace Crypt_It
             this.msTestFile.Text = "Use Testfile";
             this.msTestFile.Click += new System.EventHandler(this.UseTestfileToolStripMenuItem1_Click);
             // 
-            // startToolStripMenuItem
+            // msStart
             // 
-            this.startToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
-            this.startToolStripMenuItem.Name = "startToolStripMenuItem";
-            this.startToolStripMenuItem.Size = new System.Drawing.Size(43, 20);
-            this.startToolStripMenuItem.Text = "Start";
-            this.startToolStripMenuItem.Click += new System.EventHandler(this.StartToolStripMenuItem_Click);
+            this.msStart.ForeColor = System.Drawing.Color.Silver;
+            this.msStart.Name = "msStart";
+            this.msStart.Size = new System.Drawing.Size(43, 20);
+            this.msStart.Text = "Start";
+            this.msStart.Click += new System.EventHandler(this.StartToolStripMenuItem_Click);
             // 
             // msClear
             // 
@@ -412,7 +412,7 @@ namespace Crypt_It
         private System.Windows.Forms.ToolStripMenuItem msTestFile;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem startToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem msStart;
         private System.Windows.Forms.ToolStripMenuItem msDec;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripMenuItem msClear;

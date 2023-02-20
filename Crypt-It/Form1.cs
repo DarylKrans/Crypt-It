@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -149,9 +148,9 @@ namespace Crypt_It
         {
             Pass.Enabled = PassC.Enabled = !a;
             PBar.Visible = b_Working = a;
-            fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled = msClear.Visible = !a;
-            if (a) startToolStripMenuItem.Text = "Cancel";
-            else startToolStripMenuItem.Text = "Start";
+            fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled = msClear.Visible = msClear.Enabled = !a;
+            if (a) { msStart.Text = "Cancel"; msStart.Enabled = a; }
+            else msStart.Text = "Start";
         }
         void Clear_Info()
         {
@@ -163,7 +162,7 @@ namespace Crypt_It
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             if (!b_msDCHK) b_Reverse = msDec.Checked = msClear.Visible = false;
-            b_Overwrite = b_OverwriteChecked = b_Yclick = this.startToolStripMenuItem.Enabled = b_Cancel = false;
+            b_Overwrite = b_OverwriteChecked = b_Yclick = this.msStart.Enabled = b_msDCHK = b_Cancel = false;
         }
         async void Process_File_List()
         {
@@ -282,6 +281,7 @@ namespace Crypt_It
                         if (FileNum == i_TotalFiles)
                         {
                             this.Invoke(new Action(() => Start_Working(false)));
+                            this.Invoke(new Action(() => b_msDCHK = false));
                             this.Invoke(new Action(() => Clear_Info()));
                             b_DoWork = false;
                         }
@@ -298,11 +298,12 @@ namespace Crypt_It
                 {
                     this.Text = def;
                     Stream?.Close();
-                    Clear_Info();
                     b_DoWork = true;
                     Start_Working(false);
+                    b_msDCHK = false;
+                    Clear_Info();
+                    Options();
                 }
-                Options();
 
                 void Overwrite_Prompt(string f)
                 {
@@ -440,7 +441,7 @@ namespace Crypt_It
         /// --------------------------------------- End encrytion process ------------------------------------------ ///
         void LockProgram() // This was just for fun.  A little hidden joke.
         {
-            startToolStripMenuItem.Enabled = Pass.Enabled = PassC.Enabled = CheckBox1.Enabled = msClear.Enabled =
+            msStart.Enabled = Pass.Enabled = PassC.Enabled = CheckBox1.Enabled = msClear.Enabled =
                 ControlBox = optionsToolStripMenuItem.Enabled = fileToolStripMenuItem.Enabled = false;
             if (b_LC)
             {
@@ -456,7 +457,7 @@ namespace Crypt_It
         }
         void Options()
         {
-            Match.Visible = startToolStripMenuItem.Enabled = msSorry.Visible = false;
+            Match.Visible = msSorry.Visible = false;
             s_Password = Pass.Text;
             if (b_Reverse)
             { PassC.Visible = label2.Visible = false; s_PasswdConf = s_Password; }
@@ -479,7 +480,7 @@ namespace Crypt_It
                     Match.Visible = (!b_Reverse);
                     if (m)
                     {
-                        if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) startToolStripMenuItem.Enabled = true;
+                        if (l_FileSize.Length > 0 && l_FileSize[i_TotalFiles - 1] > 0) msStart.Enabled = true;
                         Match.Text = "Match";
                         Match.ForeColor = Color.Silver;
                     }
@@ -487,7 +488,7 @@ namespace Crypt_It
                     {
                         Match.ForeColor = Color.Red;
                         Match.Text = "No Match";
-                        startToolStripMenuItem.Enabled = false;
+                        msStart.Enabled = false;
                     }
                 }
             }
