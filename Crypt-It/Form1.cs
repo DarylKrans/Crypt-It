@@ -27,11 +27,12 @@ using System.Windows.Forms;
 ///  (done)  Fix the password generation to ensure no two different passwords yield the same seed
 ///  (done)  Fix decrypt button checks
 ///  (done)  Add threading to the encryption process for extra speed
-///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source)
+///  (done)  Add ability to process existing file instead of creating a new file (sort of.. Creates new file, encrypts, deletes source if option is checked)
 ///  (done)  Add batch file processing
-///  (done)  Added drag and drop file processing (Also supports files in subfolders now)
+///  (done)  Added drag and drop file processing (Also supports files in subfolders)
 ///  (done)  Added update interval timer to prevent large # of small files from slowing down the program with constant updates
-///  (done)  Added menu strip for ease of use.  Looks cleaner than individual buttons and adds easier access to adjustable options
+///  (done)  Added menu strip for ease of use. Looks cleaner than individual buttons and adds easier access to adjustable options
+///  (done)  Added message box for the timer function instead of displaying it in the title bar
 ///          Possibly add more steps to the encryption process
 
 namespace Crypt_It
@@ -39,16 +40,16 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.8.9";
-        /// These setting for debugging purposes (All are available in the options menu. b_Reverse is available in File menu as "Decrypt")
+        readonly string Version = "v0.9.1";
+        /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
         bool b_Timer = false; // set to true to show time it took to complete the encrypt/decrypt process 
         bool b_TestFile = false; // set to true to set the output file to C:\testfile.(bin/crypt)
         bool b_Reverse = false; // don't mess with this (just use the "decrypt" button)
+        bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
         /// ------- Personal Preference --------
         readonly bool b_Hide = false;  // set to true to hide output file(s) during encrypt/decrypt process
-        bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
         readonly long ut = 250; // sets update interval in miliseconds
         /// -------- program variables ---------
         const int Chunk_Length = (131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
@@ -95,7 +96,6 @@ namespace Crypt_It
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         public class Prompt // Prompt window configuration
         {
-
             public static (int, bool) ShowDialog(string text, string caption, int cv)
             {
                 bool t = false;
@@ -152,7 +152,14 @@ namespace Crypt_It
                 if (dr == DialogResult.Cancel) t = true;
                 return (c, t);
             }
-
+        }
+        public static string Elapsed(long ms)
+        {
+            TimeSpan t = TimeSpan.FromMilliseconds(ms);
+            if (t.Hours > 0) return $"{t.Hours}:{t.Minutes}:{t.Seconds}";
+            else if (t.Minutes > 0) return $"{t.Minutes}:{t.Seconds}.{t.Milliseconds}";
+            else if (t.Seconds > 0) return $"{t.Seconds}.{t.Milliseconds}";
+            else return $"0.{t.Milliseconds}";
         }
         void Start_Working(bool a)
         {
@@ -182,13 +189,13 @@ namespace Crypt_It
             Start_Working(true);
             long Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             long Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
+            int tfil = i_TotalFiles;
             long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
                 bool b_DoWork = b_Overwrite = true;
                 b_Reverse = (Path.GetExtension(s_NewFile[FileNum]) == ".crypt");
-                //var Chunk_Length = 131072 << 3; // change chunk size.  (*8 = 8mb chunks) 
                 var uLongs = l_FileSize[FileNum] >> 3; // FileSize / 8;
                 long[] ByteSegment = new long[3]
                 {
@@ -275,8 +282,12 @@ namespace Crypt_It
                         if (b_Timer && FileNum == i_TotalFiles - 1)
                         {
                             long msf = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                            this.Invoke(new Action(() => this.Text = $"completed in {decimal.Divide((msf - ms), 1000):f2} seconds"));
-                            Thread.Sleep(4000);
+                            string e_time = Elapsed(msf - ms);
+                            string s = "";
+                            if (tfil > 1) s = "s";
+                            MessageBoxButtons buttons = MessageBoxButtons.OK;
+                            DialogResult result = MessageBox.Show($"time {e_time} seconds", ($"{tfil} file{s} processed.")
+                                , buttons, MessageBoxIcon.Information, MessageBoxDefaultButton.Button2);
                         }
                         if (l_FileSize.Length >= FileNum && l_FileSize.Length > 0) l_FileSize[FileNum] = 0;
                         if (!b_Cancel && b_Hide) Set_File_Hidden(s_OutFile[FileNum], "u");
@@ -375,7 +386,7 @@ namespace Crypt_It
                     this.Text = def + $" ({prog:f1}%)";
                     if (i_TotalFiles > 1)
                     {
-                        var c = CountDigits(i_TotalFiles - FileNum);
+                        var c = Name_Length_Limit(i_TotalFiles - FileNum);
                         Fname.Text = $"(File {s_NewFile.Length - FileNum}) {Trunc(s_NewFile[FileNum], 42 - c)}";
                     }
                     Fsize.Text = $"{(l_tot - TotalLength) >> 10:N0} kb remaining.";
@@ -395,15 +406,15 @@ namespace Crypt_It
                 }
             }
         }
-        static int CountDigits(long MyNum)
+        static int Name_Length_Limit(long Number_of_files)
         {
-            int count = 0;
-            while (MyNum != 0)
+            int digits = 0;
+            while (Number_of_files != 0)
             {
-                MyNum /= 10;
-                count++;
+                Number_of_files /= 10;
+                digits++;
             }
-            return count;
+            return digits;
         }
         /// ------------------------------------ Actual code for Encrytion process --------------------------------------- ///
         void Encrypt(byte[] DataIn, byte[] skey, byte[] rkey, byte[] xor, long length, long r1, int o)
@@ -675,7 +686,6 @@ namespace Crypt_It
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
         }
-
         void Crypt_It_DragDrop(object sender, DragEventArgs e)
         {
             if (!b_Working)
@@ -789,7 +799,6 @@ namespace Crypt_It
                 b_Set_Cores = msThreadMan.Checked = false;
             }
         }
-
         private void SetManuallyToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!b_Working)

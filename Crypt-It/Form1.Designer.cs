@@ -238,34 +238,35 @@ namespace Crypt_It
             this.batchToolStripMenuItem.Name = "batchToolStripMenuItem";
             this.batchToolStripMenuItem.ShortcutKeyDisplayString = "";
             this.batchToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.B)));
-            this.batchToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            this.batchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.batchToolStripMenuItem.Text = "Batch";
             this.batchToolStripMenuItem.Click += new System.EventHandler(this.BatchToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(154, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
             // 
             // msDec
             // 
+            this.msDec.Image = ((System.Drawing.Image)(resources.GetObject("msDec.Image")));
             this.msDec.Name = "msDec";
             this.msDec.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
-            this.msDec.Size = new System.Drawing.Size(157, 22);
+            this.msDec.Size = new System.Drawing.Size(180, 22);
             this.msDec.Text = "&Decrypt";
             this.msDec.Click += new System.EventHandler(this.MsDec_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(154, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("exitToolStripMenuItem.Image")));
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.E)));
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.ExitToolStripMenuItem_Click);
             // 
@@ -288,7 +289,7 @@ namespace Crypt_It
             this.msThreadMan});
             this.setMaxThreadsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("setMaxThreadsToolStripMenuItem.Image")));
             this.setMaxThreadsToolStripMenuItem.Name = "setMaxThreadsToolStripMenuItem";
-            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
+            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(239, 22);
             this.setMaxThreadsToolStripMenuItem.Text = "Set max threads";
             // 
             // msThreadAuto
@@ -312,6 +313,7 @@ namespace Crypt_It
             // msDelFile
             // 
             this.msDelFile.CheckOnClick = true;
+            this.msDelFile.Image = ((System.Drawing.Image)(resources.GetObject("msDelFile.Image")));
             this.msDelFile.Name = "msDelFile";
             this.msDelFile.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
             | System.Windows.Forms.Keys.D)));
@@ -322,6 +324,7 @@ namespace Crypt_It
             // msTimer
             // 
             this.msTimer.CheckOnClick = true;
+            this.msTimer.Image = ((System.Drawing.Image)(resources.GetObject("msTimer.Image")));
             this.msTimer.Name = "msTimer";
             this.msTimer.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
             | System.Windows.Forms.Keys.M)));
