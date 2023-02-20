@@ -8,7 +8,6 @@ namespace Crypt_It
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-
         /// <summary>
         /// Clean up any resources being used.
         /// </summary>
@@ -221,13 +220,15 @@ namespace Crypt_It
             this.fileToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
             this.fileToolStripMenuItem.Size = new System.Drawing.Size(37, 20);
-            this.fileToolStripMenuItem.Text = "File";
+            this.fileToolStripMenuItem.Text = "&File";
             // 
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("openToolStripMenuItem.Image")));
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            this.openToolStripMenuItem.ShortcutKeyDisplayString = "";
+            this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.OpenToolStripMenuItem_Click);
             // 
@@ -235,32 +236,36 @@ namespace Crypt_It
             // 
             this.batchToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("batchToolStripMenuItem.Image")));
             this.batchToolStripMenuItem.Name = "batchToolStripMenuItem";
-            this.batchToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            this.batchToolStripMenuItem.ShortcutKeyDisplayString = "";
+            this.batchToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.B)));
+            this.batchToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.batchToolStripMenuItem.Text = "Batch";
             this.batchToolStripMenuItem.Click += new System.EventHandler(this.BatchToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(112, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(154, 6);
             // 
             // msDec
             // 
             this.msDec.Name = "msDec";
-            this.msDec.Size = new System.Drawing.Size(115, 22);
-            this.msDec.Text = "Decrypt";
+            this.msDec.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
+            this.msDec.Size = new System.Drawing.Size(157, 22);
+            this.msDec.Text = "&Decrypt";
             this.msDec.Click += new System.EventHandler(this.MsDec_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(112, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(154, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("exitToolStripMenuItem.Image")));
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.E)));
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.ExitToolStripMenuItem_Click);
             // 
@@ -274,7 +279,7 @@ namespace Crypt_It
             this.optionsToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(61, 20);
-            this.optionsToolStripMenuItem.Text = "Options";
+            this.optionsToolStripMenuItem.Text = "&Options";
             // 
             // setMaxThreadsToolStripMenuItem
             // 
@@ -283,7 +288,7 @@ namespace Crypt_It
             this.msThreadMan});
             this.setMaxThreadsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("setMaxThreadsToolStripMenuItem.Image")));
             this.setMaxThreadsToolStripMenuItem.Name = "setMaxThreadsToolStripMenuItem";
-            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(206, 22);
             this.setMaxThreadsToolStripMenuItem.Text = "Set max threads";
             // 
             // msThreadAuto
@@ -291,14 +296,16 @@ namespace Crypt_It
             this.msThreadAuto.Checked = true;
             this.msThreadAuto.CheckState = System.Windows.Forms.CheckState.Checked;
             this.msThreadAuto.Name = "msThreadAuto";
-            this.msThreadAuto.Size = new System.Drawing.Size(142, 22);
+            this.msThreadAuto.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
+            this.msThreadAuto.Size = new System.Drawing.Size(182, 22);
             this.msThreadAuto.Text = "Automatic";
             this.msThreadAuto.Click += new System.EventHandler(this.MsThreadAuto_Click);
             // 
             // msThreadMan
             // 
             this.msThreadMan.Name = "msThreadMan";
-            this.msThreadMan.Size = new System.Drawing.Size(142, 22);
+            this.msThreadMan.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
+            this.msThreadMan.Size = new System.Drawing.Size(182, 22);
             this.msThreadMan.Text = "Set Manually";
             this.msThreadMan.Click += new System.EventHandler(this.SetManuallyToolStripMenuItem_Click);
             // 
@@ -306,7 +313,9 @@ namespace Crypt_It
             // 
             this.msDelFile.CheckOnClick = true;
             this.msDelFile.Name = "msDelFile";
-            this.msDelFile.Size = new System.Drawing.Size(165, 22);
+            this.msDelFile.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.D)));
+            this.msDelFile.Size = new System.Drawing.Size(239, 22);
             this.msDelFile.Text = "Delete souce files";
             this.msDelFile.Click += new System.EventHandler(this.DeleteSouceFilesToolStripMenuItem_Click);
             // 
@@ -314,7 +323,9 @@ namespace Crypt_It
             // 
             this.msTimer.CheckOnClick = true;
             this.msTimer.Name = "msTimer";
-            this.msTimer.Size = new System.Drawing.Size(165, 22);
+            this.msTimer.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.M)));
+            this.msTimer.Size = new System.Drawing.Size(239, 22);
             this.msTimer.Text = "Timer";
             this.msTimer.Click += new System.EventHandler(this.Timer_Click);
             // 
@@ -323,7 +334,9 @@ namespace Crypt_It
             this.msTestFile.CheckOnClick = true;
             this.msTestFile.Image = ((System.Drawing.Image)(resources.GetObject("msTestFile.Image")));
             this.msTestFile.Name = "msTestFile";
-            this.msTestFile.Size = new System.Drawing.Size(165, 22);
+            this.msTestFile.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.T)));
+            this.msTestFile.Size = new System.Drawing.Size(239, 22);
             this.msTestFile.Text = "Use Testfile";
             this.msTestFile.Click += new System.EventHandler(this.UseTestfileToolStripMenuItem1_Click);
             // 
@@ -332,7 +345,7 @@ namespace Crypt_It
             this.msStart.ForeColor = System.Drawing.Color.Silver;
             this.msStart.Name = "msStart";
             this.msStart.Size = new System.Drawing.Size(43, 20);
-            this.msStart.Text = "Start";
+            this.msStart.Text = "&Start";
             this.msStart.Click += new System.EventHandler(this.StartToolStripMenuItem_Click);
             // 
             // msClear
@@ -340,7 +353,7 @@ namespace Crypt_It
             this.msClear.ForeColor = System.Drawing.Color.Silver;
             this.msClear.Name = "msClear";
             this.msClear.Size = new System.Drawing.Size(46, 20);
-            this.msClear.Text = "Clear";
+            this.msClear.Text = "&Clear";
             this.msClear.Click += new System.EventHandler(this.ClearToolStripMenuItem_Click);
             // 
             // msSorry

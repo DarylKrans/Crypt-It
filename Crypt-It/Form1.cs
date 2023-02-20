@@ -51,6 +51,7 @@ namespace Crypt_It
         bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
         readonly long ut = 250; // sets update interval in miliseconds
         /// -------- program variables ---------
+        const int Chunk_Length = (131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
         bool b_LC = false;
         bool b_Working = false;
         bool b_Cancel = false;
@@ -59,6 +60,7 @@ namespace Crypt_It
         bool b_Yclick = false;
         bool b_OverwriteChecked = false;
         bool b_msDCHK = false;
+        bool b_Thread_Cancel = false;
         string[] s_NewFile = new string[0];
         string[] s_OutFile = new string[0];
         string[] s_DropFiles = new string[0];
@@ -72,9 +74,9 @@ namespace Crypt_It
         int i_TotalFiles;
         int i_Cores;
         int l;
+        readonly int def;
         long[] l_FileSize = new long[0];
         long l_tot;
-
 
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
@@ -83,18 +85,20 @@ namespace Crypt_It
             InitializeComponent();
             this.Text = $"{Program} {Version}";
             if (i_CoreVal < 1) i_CoreVal = 1;
+            def = i_CoreVal;
             Options();
-            this.AllowDrop = true;
             Clear_Info();
-            this.DragEnter += new DragEventHandler(Crypt_It_DragEnter);
-            this.DragDrop += new DragEventHandler(Crypt_It_DragDrop);
+            AllowDrop = true;
+            DragEnter += new DragEventHandler(Crypt_It_DragEnter);
+            DragDrop += new DragEventHandler(Crypt_It_DragDrop);
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         public class Prompt // Prompt window configuration
         {
 
-            public static int ShowDialog(string text, string caption, int cv)
+            public static (int, bool) ShowDialog(string text, string caption, int cv)
             {
+                bool t = false;
                 Form prompt = new Form
                 {
                     Width = 200,
@@ -104,7 +108,12 @@ namespace Crypt_It
                     StartPosition = FormStartPosition.CenterScreen,
                     ControlBox = false
                 };
-                Label textLabel = new Label() { Left = 35, Top = 18, Text = text };
+                Label textLabel = new Label()
+                {
+                    Left = 35,
+                    Top = 18,
+                    Text = text
+                };
                 NumericUpDown textBox = new NumericUpDown
                 {
                     Left = 75,
@@ -138,9 +147,10 @@ namespace Crypt_It
                 prompt.AcceptButton = confirmation;
                 prompt.CancelButton = cancel;
                 var c = 0;
-                if (prompt.ShowDialog() == DialogResult.OK) c = (int)textBox.Value;
-                else c = cv;
-                return c;
+                var dr = (prompt.ShowDialog());
+                if (dr == DialogResult.OK) c = (int)textBox.Value; else c = cv;
+                if (dr == DialogResult.Cancel) t = true;
+                return (c, t);
             }
 
         }
@@ -162,7 +172,7 @@ namespace Crypt_It
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             if (!b_msDCHK) b_Reverse = msDec.Checked = msClear.Visible = false;
-            b_Overwrite = b_OverwriteChecked = b_Yclick = this.msStart.Enabled = b_msDCHK = b_Cancel = false;
+            b_Overwrite = b_OverwriteChecked = b_Yclick = msStart.Enabled = b_msDCHK = b_Cancel = false;
         }
         async void Process_File_List()
         {
@@ -178,7 +188,7 @@ namespace Crypt_It
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
                 bool b_DoWork = b_Overwrite = true;
                 b_Reverse = (Path.GetExtension(s_NewFile[FileNum]) == ".crypt");
-                var Chunk_Length = 131072 << 3; // change chunk size.  (*8 = 8mb chunks) 
+                //var Chunk_Length = 131072 << 3; // change chunk size.  (*8 = 8mb chunks) 
                 var uLongs = l_FileSize[FileNum] >> 3; // FileSize / 8;
                 long[] ByteSegment = new long[3]
                 {
@@ -250,7 +260,7 @@ namespace Crypt_It
                             }
                         }
                     Loopend:
-                        Stream.Close();
+                        Stream?.Close();
                         Dest.Close();
                         if (b_Cancel)
                         {
@@ -708,36 +718,54 @@ namespace Crypt_It
         }
         private void OpenToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Clear_Info();
-            this.openFileDialog1.Multiselect = false;
-            Filter_Files();
+            if (!b_Working)
+            {
+                Clear_Info();
+                this.openFileDialog1.Multiselect = false;
+                Filter_Files();
+            }
         }
         private void BatchToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Clear_Info();
-            this.openFileDialog1.Multiselect = true;
-            Filter_Files();
+            if (!b_Working)
+            {
+                Clear_Info();
+                this.openFileDialog1.Multiselect = true;
+                Filter_Files();
+            }
         }
         private void DeleteSouceFilesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (b_DelSource) b_DelSource = msDelFile.Checked = false;
-            else b_DelSource = msDelFile.Checked = true;
+            if (!b_Working)
+            {
+                if (b_DelSource) b_DelSource = msDelFile.Checked = false;
+                else b_DelSource = msDelFile.Checked = true;
+            }
         }
         private void UseTestfileToolStripMenuItem1_Click(object sender, EventArgs e)
         {
-            if (b_TestFile) b_TestFile = msTestFile.Checked = false;
-            else b_TestFile = msTestFile.Checked = true;
+            if (!b_Working)
+            {
+                if (b_TestFile) b_TestFile = msTestFile.Checked = false;
+                else b_TestFile = msTestFile.Checked = true;
+            }
         }
         private void Timer_Click(object sender, EventArgs e)
         {
-            if (b_Timer) b_Timer = msTimer.Checked = false;
-            else b_Timer = msTimer.Checked = true;
+            if (!b_Working)
+            {
+                if (b_Timer) b_Timer = msTimer.Checked = false;
+                else b_Timer = msTimer.Checked = true;
+            }
         }
         private void MsDec_Click(object sender, EventArgs e)
         {
-            if (b_Reverse) b_Reverse = msDec.Checked = b_msDCHK = false;
-            else b_Reverse = msDec.Checked = b_msDCHK = true;
-            Options();
+            if (!b_Working)
+            {
+                if (b_Reverse) b_Reverse = msDec.Checked = b_msDCHK = false;
+                else b_Reverse = msDec.Checked = b_msDCHK = true;
+                Options();
+            }
         }
         private void ClearToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -755,23 +783,48 @@ namespace Crypt_It
         }
         private void MsThreadAuto_Click(object sender, EventArgs e)
         {
-            msThreadAuto.Checked = true;
-            b_Set_Cores = msThreadMan.Checked = false;
+            if (!b_Working)
+            {
+                msThreadAuto.Checked = true;
+                b_Set_Cores = msThreadMan.Checked = false;
+            }
         }
 
         private void SetManuallyToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            msThreadAuto.Checked = false;
-            b_Set_Cores = msThreadMan.Checked = true;
-            Set_Cores();
-            void Set_Cores()
+            if (!b_Working)
             {
-                i_CoreVal = Prompt.ShowDialog("(1-255)", "Set Thread Count", i_CoreVal);
+                msThreadAuto.Checked = false;
+                b_Set_Cores = msThreadMan.Checked = true;
+                Set_Cores();
+                void Set_Cores()
+                {
+                    (i_CoreVal, b_Thread_Cancel) = Prompt.ShowDialog("(1-255)", "Set Thread Count", i_CoreVal);
+                    if (b_Thread_Cancel) { i_CoreVal = def; msThreadAuto.Checked = true; b_Thread_Cancel = msThreadMan.Checked = b_Set_Cores = false; }
+                }
             }
         }
-        private void ExitToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void ExitToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (b_Working)
+            {
+                b_Cancel = true;
+                while (b_Cancel == true) await Task.Delay(25);
+            }
             this.Close();
+
         }
+        private void Crypt_It_Load(object sender, EventArgs e)
+        {
+            this.KeyPreview = true;
+        }
+        private void Crypt_It_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Control == true && e.KeyCode == Keys.J)
+            {
+                openToolStripMenuItem.PerformClick();
+            }
+        }
+
     }
 }
