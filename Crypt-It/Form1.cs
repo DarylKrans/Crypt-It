@@ -39,7 +39,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.8.3";
+        readonly string Version = "v0.8.9";
         /// These setting for debugging purposes (All are available in the options menu. b_Reverse is available in File menu as "Decrypt")
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -812,19 +812,6 @@ namespace Crypt_It
                 while (b_Cancel == true) await Task.Delay(25);
             }
             this.Close();
-
         }
-        private void Crypt_It_Load(object sender, EventArgs e)
-        {
-            this.KeyPreview = true;
-        }
-        private void Crypt_It_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Control == true && e.KeyCode == Keys.J)
-            {
-                openToolStripMenuItem.PerformClick();
-            }
-        }
-
     }
 }
