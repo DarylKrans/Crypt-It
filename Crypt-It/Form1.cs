@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -157,6 +158,7 @@ namespace Crypt_It
             s_NewFile = new string[0];
             s_DropFiles = new string[1];
             s_DropFiles[0] = "";
+            thd.Text = "";
             l_FileSize = new long[0];
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";

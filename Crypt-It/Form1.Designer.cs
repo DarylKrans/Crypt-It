@@ -186,6 +186,7 @@ namespace Crypt_It
             // thd
             // 
             this.thd.AutoSize = true;
+            this.thd.BackColor = System.Drawing.Color.Transparent;
             this.thd.ForeColor = System.Drawing.Color.Silver;
             this.thd.Location = new System.Drawing.Point(223, 112);
             this.thd.Name = "thd";
@@ -226,7 +227,7 @@ namespace Crypt_It
             // 
             this.openToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("openToolStripMenuItem.Image")));
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.OpenToolStripMenuItem_Click);
             // 
@@ -234,32 +235,32 @@ namespace Crypt_It
             // 
             this.batchToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("batchToolStripMenuItem.Image")));
             this.batchToolStripMenuItem.Name = "batchToolStripMenuItem";
-            this.batchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.batchToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
             this.batchToolStripMenuItem.Text = "Batch";
             this.batchToolStripMenuItem.Click += new System.EventHandler(this.BatchToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(112, 6);
             // 
             // msDec
             // 
             this.msDec.Name = "msDec";
-            this.msDec.Size = new System.Drawing.Size(180, 22);
+            this.msDec.Size = new System.Drawing.Size(115, 22);
             this.msDec.Text = "Decrypt";
             this.msDec.Click += new System.EventHandler(this.MsDec_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(112, 6);
             // 
             // exitToolStripMenuItem
             // 
             this.exitToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("exitToolStripMenuItem.Image")));
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.ExitToolStripMenuItem_Click);
             // 
@@ -282,7 +283,7 @@ namespace Crypt_It
             this.msThreadMan});
             this.setMaxThreadsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("setMaxThreadsToolStripMenuItem.Image")));
             this.setMaxThreadsToolStripMenuItem.Name = "setMaxThreadsToolStripMenuItem";
-            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
             this.setMaxThreadsToolStripMenuItem.Text = "Set max threads";
             // 
             // msThreadAuto
@@ -305,7 +306,7 @@ namespace Crypt_It
             // 
             this.msDelFile.CheckOnClick = true;
             this.msDelFile.Name = "msDelFile";
-            this.msDelFile.Size = new System.Drawing.Size(180, 22);
+            this.msDelFile.Size = new System.Drawing.Size(165, 22);
             this.msDelFile.Text = "Delete souce files";
             this.msDelFile.Click += new System.EventHandler(this.DeleteSouceFilesToolStripMenuItem_Click);
             // 
@@ -313,7 +314,7 @@ namespace Crypt_It
             // 
             this.msTimer.CheckOnClick = true;
             this.msTimer.Name = "msTimer";
-            this.msTimer.Size = new System.Drawing.Size(180, 22);
+            this.msTimer.Size = new System.Drawing.Size(165, 22);
             this.msTimer.Text = "Timer";
             this.msTimer.Click += new System.EventHandler(this.Timer_Click);
             // 
@@ -322,7 +323,7 @@ namespace Crypt_It
             this.msTestFile.CheckOnClick = true;
             this.msTestFile.Image = ((System.Drawing.Image)(resources.GetObject("msTestFile.Image")));
             this.msTestFile.Name = "msTestFile";
-            this.msTestFile.Size = new System.Drawing.Size(180, 22);
+            this.msTestFile.Size = new System.Drawing.Size(165, 22);
             this.msTestFile.Text = "Use Testfile";
             this.msTestFile.Click += new System.EventHandler(this.UseTestfileToolStripMenuItem1_Click);
             // 
