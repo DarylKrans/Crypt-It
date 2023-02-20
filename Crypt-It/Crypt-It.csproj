@@ -84,6 +84,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -100,6 +101,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="fox.ico" />
+    <None Include="Resources\encrypt1.png" />
+    <None Include="Resources\encrypt.png" />
+    <None Include="Resources\decrypt.png" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">

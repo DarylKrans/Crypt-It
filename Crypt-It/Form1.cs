@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Crypt_It.Properties;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -9,7 +10,7 @@ using System.Windows.Forms;
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 19th 2023                       //
+//     Latest revision Feb 20th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -40,13 +41,13 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.1";
+        readonly string Version = "v0.9.2";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
         bool b_Timer = false; // set to true to show time it took to complete the encrypt/decrypt process 
         bool b_TestFile = false; // set to true to set the output file to C:\testfile.(bin/crypt)
-        bool b_Reverse = false; // don't mess with this (just use the "decrypt" button)
+        public bool b_Reverse = false; // don't mess with this (just use the "decrypt" button)
         bool b_DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
         /// ------- Personal Preference --------
         readonly bool b_Hide = false;  // set to true to hide output file(s) during encrypt/decrypt process
@@ -772,8 +773,8 @@ namespace Crypt_It
         {
             if (!b_Working)
             {
-                if (b_Reverse) b_Reverse = msDec.Checked = b_msDCHK = false;
-                else b_Reverse = msDec.Checked = b_msDCHK = true;
+                if (b_Reverse) { b_Reverse = msDec.Checked = b_msDCHK = false; msDec.Text = "Decrypt"; msDec.Image = Resources.decrypt; }
+                else { b_Reverse = msDec.Checked = b_msDCHK = true; msDec.Text = "Encrypt"; msDec.Image = Resources.encrypt1; }
                 Options();
             }
         }
@@ -822,5 +823,7 @@ namespace Crypt_It
             }
             this.Close();
         }
+
+     
     }
 }

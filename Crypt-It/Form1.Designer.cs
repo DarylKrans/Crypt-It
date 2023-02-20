@@ -249,7 +249,7 @@ namespace Crypt_It
             // 
             // msDec
             // 
-            this.msDec.Image = ((System.Drawing.Image)(resources.GetObject("msDec.Image")));
+            this.msDec.Image = global::Crypt_It.Properties.Resources.decrypt;
             this.msDec.Name = "msDec";
             this.msDec.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
             this.msDec.Size = new System.Drawing.Size(180, 22);
