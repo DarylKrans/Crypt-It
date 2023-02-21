@@ -41,7 +41,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.2";
+        readonly string Version = "v0.9.3";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -79,12 +79,13 @@ namespace Crypt_It
         readonly int def;
         long[] l_FileSize = new long[0];
         long l_tot;
-
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         // ------------------- Program start here -----------------------------
         {
             InitializeComponent();
+            var a = 128;
+            Color bcolor = Color.FromArgb(64, a, a, a);
             this.Text = $"{Program} {Version}";
             if (i_CoreVal < 1) i_CoreVal = 1;
             def = i_CoreVal;
@@ -93,8 +94,43 @@ namespace Crypt_It
             AllowDrop = true;
             DragEnter += new DragEventHandler(Crypt_It_DragEnter);
             DragDrop += new DragEventHandler(Crypt_It_DragDrop);
+            Menu.BackColor = t_remain.BackColor = bcolor;
+            Menu.Renderer = new MyRender();
+
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
+
+        private class MyRender : ToolStripProfessionalRenderer
+        {
+            public MyRender() : base(new MyColorTable()) { }
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs myMenu)
+            {
+                if (!myMenu.Item.Selected)
+                    base.OnRenderMenuItemBackground(myMenu);
+
+                else
+                {
+                    var brush = new SolidBrush(Color.FromArgb(220, 64, 64, 64));
+                    Rectangle menuRectangle = new Rectangle(Point.Empty, myMenu.Item.Size);
+                    myMenu.Graphics.FillRectangle(brush, menuRectangle);
+                    myMenu.Graphics.DrawRectangle(Pens.Black, 0, 0, menuRectangle.Width, menuRectangle.Height);
+                }
+            }
+        }
+        public class MyColorTable : ProfessionalColorTable
+        {
+            public override Color MenuItemPressedGradientBegin => Color.Black;
+            public override Color MenuItemPressedGradientEnd => Color.DimGray;
+            public override Color MenuItemBorder => Color.DarkGray;
+            public override Color MenuItemSelectedGradientBegin => Color.Black;
+            public override Color MenuItemSelectedGradientEnd => Color.DimGray;
+            public override Color ToolStripDropDownBackground => Color.FromArgb(215, 4, 4, 4);
+            public override Color ImageMarginGradientBegin => Color.FromArgb(135, 140, 140, 140);
+            public override Color ImageMarginGradientMiddle => Color.FromArgb(135, 140, 140, 140);
+            public override Color ImageMarginGradientEnd => Color.FromArgb(135, 140, 140, 140);
+            public override Color SeparatorDark => Color.Black;
+            public override Color MenuBorder => Color.DarkGray;
+        }
         public class Prompt // Prompt window configuration
         {
             public static (int, bool) ShowDialog(string text, string caption, int cv)
@@ -180,7 +216,7 @@ namespace Crypt_It
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             if (!b_msDCHK) b_Reverse = msDec.Checked = msClear.Visible = false;
-            b_Overwrite = b_OverwriteChecked = b_Yclick = msStart.Enabled = b_msDCHK = b_Cancel = false;
+            b_Overwrite = b_OverwriteChecked = b_Yclick = msStart.Enabled = b_msDCHK = t_remain.Visible = b_Cancel = false;
         }
         async void Process_File_List()
         {
@@ -192,6 +228,7 @@ namespace Crypt_It
             long Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
             int tfil = i_TotalFiles;
             long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+            DateTime start = DateTime.Now;
             for (int FileNum = 0; FileNum < i_TotalFiles; FileNum++)
             {
                 FileStream Stream = new FileStream(s_NewFile[FileNum], FileMode.Open, FileAccess.Read);
@@ -381,10 +418,16 @@ namespace Crypt_It
                 }
                 void Progress_Update()
                 {
+                    TimeSpan spent = DateTime.Now - start;
+                    int ts = (int)spent.TotalSeconds + 1;
+                    if (ts < 1) ts = 1;
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
+                    TimeSpan since = new TimeSpan(0, 0, (int)((l_tot - TotalLength) / (TotalLength / ts)));
                     PBar.Update();
-                    this.Text = def + $" ({prog:f1}%)";
+                    //this.Text = def + $" ({prog:f1}%)";
+                    if (!t_remain.Visible) t_remain.Visible = true;
+                    t_remain.Text = $"remain ({since})";
                     if (i_TotalFiles > 1)
                     {
                         var c = Name_Length_Limit(i_TotalFiles - FileNum);
@@ -774,7 +817,7 @@ namespace Crypt_It
             if (!b_Working)
             {
                 if (b_Reverse) { b_Reverse = msDec.Checked = b_msDCHK = false; msDec.Text = "Decrypt"; msDec.Image = Resources.decrypt; }
-                else { b_Reverse = msDec.Checked = b_msDCHK = true; msDec.Text = "Encrypt"; msDec.Image = Resources.encrypt1; }
+                else { b_Reverse = msDec.Checked = b_msDCHK = true; msDec.Text = "Encrypt"; msDec.Image = Resources.enc; }
                 Options();
             }
         }
@@ -785,12 +828,15 @@ namespace Crypt_It
         }
         private void SorryToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            this.ControlBox = fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled =
-                Pass.Enabled = PassC.Enabled = msClear.Enabled = CheckBox1.Enabled = b_LC = true;
-            msSorry.Visible = false;
-            i_B = 0;
-            this.Text = $"Annoyed-{Program} {Version}";
-            Options();
+            if (!b_Working)
+            {
+                this.ControlBox = fileToolStripMenuItem.Enabled = optionsToolStripMenuItem.Enabled =
+                    Pass.Enabled = PassC.Enabled = msClear.Enabled = CheckBox1.Enabled = b_LC = true;
+                msSorry.Visible = false;
+                i_B = 0;
+                this.Text = $"Annoyed-{Program} {Version}";
+                Options();
+            }
         }
         private void MsThreadAuto_Click(object sender, EventArgs e)
         {
@@ -824,6 +870,6 @@ namespace Crypt_It
             this.Close();
         }
 
-     
+
     }
 }

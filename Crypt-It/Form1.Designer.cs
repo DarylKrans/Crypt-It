@@ -1,4 +1,5 @@
-﻿using System.Windows.Forms;
+﻿using System.Drawing;
+using System.Windows.Forms;
 
 namespace Crypt_It
 {
@@ -57,10 +58,12 @@ namespace Crypt_It
             this.msThreadMan = new System.Windows.Forms.ToolStripMenuItem();
             this.msDelFile = new System.Windows.Forms.ToolStripMenuItem();
             this.msTimer = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             this.msTestFile = new System.Windows.Forms.ToolStripMenuItem();
             this.msStart = new System.Windows.Forms.ToolStripMenuItem();
             this.msClear = new System.Windows.Forms.ToolStripMenuItem();
             this.msSorry = new System.Windows.Forms.ToolStripMenuItem();
+            this.t_remain = new System.Windows.Forms.Label();
             this.Menu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -194,7 +197,7 @@ namespace Crypt_It
             // 
             // Menu
             // 
-            this.Menu.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.Menu.BackColor = System.Drawing.Color.Transparent;
             this.Menu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.fileToolStripMenuItem,
             this.optionsToolStripMenuItem,
@@ -224,49 +227,53 @@ namespace Crypt_It
             // 
             // openToolStripMenuItem
             // 
+            this.openToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.openToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("openToolStripMenuItem.Image")));
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
             this.openToolStripMenuItem.ShortcutKeyDisplayString = "";
             this.openToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.O)));
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.openToolStripMenuItem.Text = "Open";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.OpenToolStripMenuItem_Click);
             // 
             // batchToolStripMenuItem
             // 
+            this.batchToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.batchToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("batchToolStripMenuItem.Image")));
             this.batchToolStripMenuItem.Name = "batchToolStripMenuItem";
             this.batchToolStripMenuItem.ShortcutKeyDisplayString = "";
             this.batchToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.B)));
-            this.batchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.batchToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.batchToolStripMenuItem.Text = "Batch";
             this.batchToolStripMenuItem.Click += new System.EventHandler(this.BatchToolStripMenuItem_Click);
             // 
             // toolStripSeparator1
             // 
             this.toolStripSeparator1.Name = "toolStripSeparator1";
-            this.toolStripSeparator1.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator1.Size = new System.Drawing.Size(154, 6);
             // 
             // msDec
             // 
+            this.msDec.ForeColor = System.Drawing.Color.Silver;
             this.msDec.Image = global::Crypt_It.Properties.Resources.decrypt;
             this.msDec.Name = "msDec";
             this.msDec.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.D)));
-            this.msDec.Size = new System.Drawing.Size(180, 22);
+            this.msDec.Size = new System.Drawing.Size(157, 22);
             this.msDec.Text = "&Decrypt";
             this.msDec.Click += new System.EventHandler(this.MsDec_Click);
             // 
             // toolStripSeparator2
             // 
             this.toolStripSeparator2.Name = "toolStripSeparator2";
-            this.toolStripSeparator2.Size = new System.Drawing.Size(177, 6);
+            this.toolStripSeparator2.Size = new System.Drawing.Size(154, 6);
             // 
             // exitToolStripMenuItem
             // 
+            this.exitToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.exitToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("exitToolStripMenuItem.Image")));
             this.exitToolStripMenuItem.Name = "exitToolStripMenuItem";
             this.exitToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.E)));
-            this.exitToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.exitToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.exitToolStripMenuItem.Text = "Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.ExitToolStripMenuItem_Click);
             // 
@@ -276,6 +283,7 @@ namespace Crypt_It
             this.setMaxThreadsToolStripMenuItem,
             this.msDelFile,
             this.msTimer,
+            this.toolStripSeparator3,
             this.msTestFile});
             this.optionsToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
@@ -287,6 +295,7 @@ namespace Crypt_It
             this.setMaxThreadsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.msThreadAuto,
             this.msThreadMan});
+            this.setMaxThreadsToolStripMenuItem.ForeColor = System.Drawing.Color.Silver;
             this.setMaxThreadsToolStripMenuItem.Image = ((System.Drawing.Image)(resources.GetObject("setMaxThreadsToolStripMenuItem.Image")));
             this.setMaxThreadsToolStripMenuItem.Name = "setMaxThreadsToolStripMenuItem";
             this.setMaxThreadsToolStripMenuItem.Size = new System.Drawing.Size(239, 22);
@@ -296,6 +305,7 @@ namespace Crypt_It
             // 
             this.msThreadAuto.Checked = true;
             this.msThreadAuto.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.msThreadAuto.ForeColor = System.Drawing.Color.Silver;
             this.msThreadAuto.Name = "msThreadAuto";
             this.msThreadAuto.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.A)));
             this.msThreadAuto.Size = new System.Drawing.Size(182, 22);
@@ -304,6 +314,7 @@ namespace Crypt_It
             // 
             // msThreadMan
             // 
+            this.msThreadMan.ForeColor = System.Drawing.Color.Silver;
             this.msThreadMan.Name = "msThreadMan";
             this.msThreadMan.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.T)));
             this.msThreadMan.Size = new System.Drawing.Size(182, 22);
@@ -313,6 +324,7 @@ namespace Crypt_It
             // msDelFile
             // 
             this.msDelFile.CheckOnClick = true;
+            this.msDelFile.ForeColor = System.Drawing.Color.Silver;
             this.msDelFile.Image = ((System.Drawing.Image)(resources.GetObject("msDelFile.Image")));
             this.msDelFile.Name = "msDelFile";
             this.msDelFile.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
@@ -324,6 +336,7 @@ namespace Crypt_It
             // msTimer
             // 
             this.msTimer.CheckOnClick = true;
+            this.msTimer.ForeColor = System.Drawing.Color.Silver;
             this.msTimer.Image = ((System.Drawing.Image)(resources.GetObject("msTimer.Image")));
             this.msTimer.Name = "msTimer";
             this.msTimer.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
@@ -332,9 +345,15 @@ namespace Crypt_It
             this.msTimer.Text = "Timer";
             this.msTimer.Click += new System.EventHandler(this.Timer_Click);
             // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(236, 6);
+            // 
             // msTestFile
             // 
             this.msTestFile.CheckOnClick = true;
+            this.msTestFile.ForeColor = System.Drawing.Color.Silver;
             this.msTestFile.Image = ((System.Drawing.Image)(resources.GetObject("msTestFile.Image")));
             this.msTestFile.Name = "msTestFile";
             this.msTestFile.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
@@ -361,12 +380,23 @@ namespace Crypt_It
             // 
             // msSorry
             // 
-            this.msSorry.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
+            this.msSorry.BackColor = System.Drawing.Color.Transparent;
             this.msSorry.ForeColor = System.Drawing.Color.Silver;
             this.msSorry.Name = "msSorry";
             this.msSorry.Size = new System.Drawing.Size(46, 20);
             this.msSorry.Text = "Sorry";
             this.msSorry.Click += new System.EventHandler(this.SorryToolStripMenuItem_Click);
+            // 
+            // t_remain
+            // 
+            this.t_remain.AutoSize = true;
+            this.t_remain.BackColor = System.Drawing.Color.Transparent;
+            this.t_remain.ForeColor = System.Drawing.Color.Silver;
+            this.t_remain.Location = new System.Drawing.Point(249, 5);
+            this.t_remain.Name = "t_remain";
+            this.t_remain.Size = new System.Drawing.Size(35, 13);
+            this.t_remain.TabIndex = 18;
+            this.t_remain.Text = "label3";
             // 
             // Crypt_It
             // 
@@ -375,6 +405,7 @@ namespace Crypt_It
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.ClientSize = new System.Drawing.Size(344, 132);
+            this.Controls.Add(this.t_remain);
             this.Controls.Add(this.Menu);
             this.Controls.Add(this.thd);
             this.Controls.Add(this.Match);
@@ -426,7 +457,6 @@ namespace Crypt_It
         private System.Windows.Forms.ToolStripMenuItem setMaxThreadsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem msTimer;
         private System.Windows.Forms.ToolStripMenuItem msTestFile;
-        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem msStart;
         private System.Windows.Forms.ToolStripMenuItem msDec;
@@ -435,6 +465,9 @@ namespace Crypt_It
         private System.Windows.Forms.ToolStripMenuItem msSorry;
         private System.Windows.Forms.ToolStripMenuItem msThreadAuto;
         private System.Windows.Forms.ToolStripMenuItem msThreadMan;
+        private Label t_remain;
+        private ToolStripSeparator toolStripSeparator1;
+        private ToolStripSeparator toolStripSeparator3;
     }
 }
 

@@ -101,6 +101,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="fox.ico" />
+    <None Include="Resources\enc.png" />
     <None Include="Resources\encrypt1.png" />
     <None Include="Resources\encrypt.png" />
     <None Include="Resources\decrypt.png" />

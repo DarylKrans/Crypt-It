@@ -73,6 +73,16 @@ namespace Crypt_It.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Bitmap.
         /// </summary>
+        internal static System.Drawing.Bitmap enc {
+            get {
+                object obj = ResourceManager.GetObject("enc", resourceCulture);
+                return ((System.Drawing.Bitmap)(obj));
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized resource of type System.Drawing.Bitmap.
+        /// </summary>
         internal static System.Drawing.Bitmap encrypt {
             get {
                 object obj = ResourceManager.GetObject("encrypt", resourceCulture);
