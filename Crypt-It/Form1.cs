@@ -1,16 +1,19 @@
 ﻿using Crypt_It.Properties;
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
+using System.Security.Policy;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 20th 2023                       //
+//     Latest revision Feb 21th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -34,6 +37,7 @@ using System.Windows.Forms;
 ///  (done)  Added update interval timer to prevent large # of small files from slowing down the program with constant updates
 ///  (done)  Added menu strip for ease of use. Looks cleaner than individual buttons and adds easier access to adjustable options
 ///  (done)  Added message box for the timer function instead of displaying it in the title bar
+///  (done)  Added remaining time to menu strip and fixed the time format output for both time remaining and time elapsed.
 ///          Possibly add more steps to the encryption process
 
 namespace Crypt_It
@@ -41,7 +45,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.3";
+        readonly string Version = "v0.9.35";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -63,11 +67,13 @@ namespace Crypt_It
         bool b_OverwriteChecked = false;
         bool b_msDCHK = false;
         bool b_Thread_Cancel = false;
+        bool b_DryRun = false;
         string[] s_NewFile = new string[0];
         string[] s_OutFile = new string[0];
         string[] s_DropFiles = new string[0];
         string s_Password;
         string s_PasswdConf;
+        readonly string dummy = @"c:\dummyfil.000";
         byte[][] bt_Output = new byte[0][];
         byte[] by_LKey = new byte[0];
         byte[] by_bKey = new byte[0];
@@ -103,33 +109,39 @@ namespace Crypt_It
         private class MyRender : ToolStripProfessionalRenderer
         {
             public MyRender() : base(new MyColorTable()) { }
-            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs myMenu)
+            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
             {
-                if (!myMenu.Item.Selected)
-                    base.OnRenderMenuItemBackground(myMenu);
-
+                if (!e.Item.Selected)
+                {
+                    base.OnRenderMenuItemBackground(e);
+                    e.Item.ForeColor = Color.Silver;
+                }
                 else
                 {
-                    var brush = new SolidBrush(Color.FromArgb(220, 64, 64, 64));
-                    Rectangle menuRectangle = new Rectangle(Point.Empty, myMenu.Item.Size);
-                    myMenu.Graphics.FillRectangle(brush, menuRectangle);
-                    myMenu.Graphics.DrawRectangle(Pens.Black, 0, 0, menuRectangle.Width, menuRectangle.Height);
+                    Rectangle menuRec = new Rectangle(Point.Empty, e.Item.Size);
+                    var grbrush = new LinearGradientBrush(new Point(0, 10), new Point(menuRec.Width, 10)
+                        , Color.FromArgb(62, 228, 228, 228), Color.FromArgb(255, 0, 0, 0));
+                    e.Graphics.FillRectangle(grbrush, menuRec);
+                    e.Graphics.DrawRectangle(Pens.Black, 0, 0, menuRec.Width - 1, menuRec.Height - 1);
+                    e.Item.ForeColor = Color.FromArgb(144, 255, 144);
                 }
             }
+
         }
         public class MyColorTable : ProfessionalColorTable
         {
             public override Color MenuItemPressedGradientBegin => Color.Black;
             public override Color MenuItemPressedGradientEnd => Color.DimGray;
-            public override Color MenuItemBorder => Color.DarkGray;
+            public override Color MenuItemBorder => Color.Black;
             public override Color MenuItemSelectedGradientBegin => Color.Black;
             public override Color MenuItemSelectedGradientEnd => Color.DimGray;
             public override Color ToolStripDropDownBackground => Color.FromArgb(215, 4, 4, 4);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(135, 140, 140, 140);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(135, 140, 140, 140);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(135, 140, 140, 140);
-            public override Color SeparatorDark => Color.Black;
-            public override Color MenuBorder => Color.DarkGray;
+            public override Color ImageMarginGradientBegin => Color.FromArgb(255, 80, 80, 80);
+            public override Color ImageMarginGradientMiddle => Color.FromArgb(255, 80, 80, 80);
+            public override Color ImageMarginGradientEnd => Color.FromArgb(255, 80, 80, 80);
+            public override Color SeparatorDark => Color.Silver;
+            public override Color MenuBorder => Color.DimGray;
+
         }
         public class Prompt // Prompt window configuration
         {
@@ -190,13 +202,28 @@ namespace Crypt_It
                 return (c, t);
             }
         }
+        private static string Remain(TimeSpan time)
+        {
+            
+            string hr; string mn = ""; string se;
+            if (time.Hours < 1) hr = ""; else hr = $"{time.Hours.ToString().PadLeft(1, '0')}:";
+            if (time.Hours > 9) hr = $"{(time.Hours.ToString().PadLeft(2, '0'))}:";
+            if (time.Hours > 0) mn = $"{(time.Minutes.ToString().PadLeft(2, '0'))}:";
+            if (time.Hours < 1) { mn = $"{time.Minutes.ToString().PadLeft(1, '0')}:"; }
+            se = $"{time.Seconds.ToString().PadLeft(2, '0')}";
+            return $"({hr}{mn}{se})";
+        }
         public static string Elapsed(long ms)
         {
+            string hr; string mn = ""; string se;
             TimeSpan t = TimeSpan.FromMilliseconds(ms);
-            if (t.Hours > 0) return $"{t.Hours}:{t.Minutes}:{t.Seconds}";
-            else if (t.Minutes > 0) return $"{t.Minutes}:{t.Seconds}.{t.Milliseconds}";
-            else if (t.Seconds > 0) return $"{t.Seconds}.{t.Milliseconds}";
-            else return $"0.{t.Milliseconds}";
+            if (t.Hours < 1) hr = ""; else hr = $"{t.Hours.ToString().PadLeft(1, '0')}:";
+            if (t.Hours > 9) hr = $"{(t.Hours.ToString().PadLeft(2, '0'))}:";
+            if (t.Hours > 0) mn = $"{(t.Minutes.ToString().PadLeft(2, '0'))}:";
+            if (t.Hours < 1) { mn = $"{t.Minutes.ToString().PadLeft(1, '0')}:"; }
+            if (t.Hours < 1 && t.Minutes < 1) mn = "";
+            se = $"{t.Seconds.ToString().PadLeft(2, '0')}";
+            return $"{hr}{mn}{se}.{t.Milliseconds}";
         }
         void Start_Working(bool a)
         {
@@ -221,6 +248,7 @@ namespace Crypt_It
         async void Process_File_List()
         {
             (by_LKey, by_bKey, by_XorKey) = Make_Keys();
+            if (b_DryRun) { b_DelSource = msDelFile.Checked = false; }
             var def = this.Text;
             long TotalLength = 0;
             Start_Working(true);
@@ -248,13 +276,14 @@ namespace Crypt_It
                     else s_OutFile[FileNum] = $@"c:\testfile{FileNum}.crypt";
                 }
                 Overwrite_Prompt(s_OutFile[FileNum]);
+                if (b_DryRun) { s_OutFile[FileNum] = dummy; }
                 b_DoWork = (FileNum != (i_TotalFiles - 1));
                 // ------ end condition checks ------------
                 if (b_Overwrite && !b_Cancel)
                 {
                     if (FileNum == (i_TotalFiles - 1) && !b_Overwrite) goto Endall;
                     FileStream Dest = new FileStream(s_OutFile[FileNum], FileMode.Append);
-                    if (b_Hide) Set_File_Hidden(s_OutFile[FileNum], "h");
+                    if (b_Hide | b_DryRun) Set_File_Hidden(s_OutFile[FileNum], "h");
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
@@ -295,7 +324,7 @@ namespace Crypt_It
                                 }
                                 for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
-                                for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
+                                if (!b_DryRun) for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
                                 Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                                 if (Cur_Time >= Update_Interval | TotalLength == l_tot)
                                 {
@@ -419,15 +448,14 @@ namespace Crypt_It
                 void Progress_Update()
                 {
                     TimeSpan spent = DateTime.Now - start;
-                    int ts = (int)spent.TotalSeconds + 1;
+                    int ts = (int)spent.TotalSeconds + 2;
                     if (ts < 1) ts = 1;
+                    TimeSpan since = new TimeSpan(0, 0, (int)((l_tot - TotalLength) / (TotalLength / ts)));
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
-                    TimeSpan since = new TimeSpan(0, 0, (int)((l_tot - TotalLength) / (TotalLength / ts)));
                     PBar.Update();
-                    //this.Text = def + $" ({prog:f1}%)";
                     if (!t_remain.Visible) t_remain.Visible = true;
-                    t_remain.Text = $"remain ({since})";
+                    t_remain.Text = Remain(since); //$"({hr}{mn}{se})";
                     if (i_TotalFiles > 1)
                     {
                         var c = Name_Length_Limit(i_TotalFiles - FileNum);
@@ -790,7 +818,7 @@ namespace Crypt_It
         }
         private void DeleteSouceFilesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!b_Working)
+            if (!b_Working && !b_DryRun)
             {
                 if (b_DelSource) b_DelSource = msDelFile.Checked = false;
                 else b_DelSource = msDelFile.Checked = true;
@@ -870,6 +898,13 @@ namespace Crypt_It
             this.Close();
         }
 
-
+        private void DryRunToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!b_Working)
+            {
+                if (msDryRun.Checked) b_DryRun = msDryRun.Checked = false;
+                else { msDryRun.Checked = b_DryRun = true; b_DelSource = msDelFile.Checked = false; }
+            }
+        }
     }
 }
