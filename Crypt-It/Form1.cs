@@ -3,17 +3,15 @@ using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.IO;
-using System.Security.Policy;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 21th 2023                       //
+//     Latest revision Feb 22th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -45,7 +43,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.35";
+        readonly string Version = "v0.9.42";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -57,7 +55,6 @@ namespace Crypt_It
         readonly bool b_Hide = false;  // set to true to hide output file(s) during encrypt/decrypt process
         readonly long ut = 250; // sets update interval in miliseconds
         /// -------- program variables ---------
-        const int Chunk_Length = (131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
         bool b_LC = false;
         bool b_Working = false;
         bool b_Cancel = false;
@@ -73,7 +70,6 @@ namespace Crypt_It
         string[] s_DropFiles = new string[0];
         string s_Password;
         string s_PasswdConf;
-        readonly string dummy = @"c:\dummyfil.000";
         byte[][] bt_Output = new byte[0][];
         byte[] by_LKey = new byte[0];
         byte[] by_bKey = new byte[0];
@@ -82,30 +78,26 @@ namespace Crypt_It
         int i_TotalFiles;
         int i_Cores;
         int l;
-        readonly int def;
         long[] l_FileSize = new long[0];
         long l_tot;
+        readonly int Chunk_Length = (131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
+        readonly int def;
+        readonly string dummy = @"c:\dummyfil.000";
+        readonly CustomProgressBar PBar = new CustomProgressBar { DisplayStyle = ProgressBarDisplayText.Percentage, };
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         // ------------------- Program start here -----------------------------
         {
             InitializeComponent();
-            var a = 128;
-            Color bcolor = Color.FromArgb(64, a, a, a);
             this.Text = $"{Program} {Version}";
-            if (i_CoreVal < 1) i_CoreVal = 1;
             def = i_CoreVal;
+            if (i_CoreVal < 1) i_CoreVal = 1;
+            Set_Options_Start();
             Options();
             Clear_Info();
-            AllowDrop = true;
-            DragEnter += new DragEventHandler(Crypt_It_DragEnter);
-            DragDrop += new DragEventHandler(Crypt_It_DragDrop);
-            Menu.BackColor = t_remain.BackColor = bcolor;
-            Menu.Renderer = new MyRender();
-
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
-
+        /// --------------------------  Classes Start ------------------------------- ///
         private class MyRender : ToolStripProfessionalRenderer
         {
             public MyRender() : base(new MyColorTable()) { }
@@ -126,7 +118,6 @@ namespace Crypt_It
                     e.Item.ForeColor = Color.FromArgb(144, 255, 144);
                 }
             }
-
         }
         public class MyColorTable : ProfessionalColorTable
         {
@@ -141,7 +132,46 @@ namespace Crypt_It
             public override Color ImageMarginGradientEnd => Color.FromArgb(255, 80, 80, 80);
             public override Color SeparatorDark => Color.Silver;
             public override Color MenuBorder => Color.DimGray;
-
+        }
+        public enum ProgressBarDisplayText { Percentage, CustomText }
+        public class CustomProgressBar : ProgressBar
+        {
+            public ProgressBarDisplayText DisplayStyle { get; set; }
+            public String CustomText { get; set; }
+            public CustomProgressBar()
+            {
+                SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+            }
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                Rectangle rect = ClientRectangle;
+                Graphics g = e.Graphics;
+                ProgressBarRenderer.DrawHorizontalBar(g, rect);
+                rect.Inflate(-1, -1);
+                var brush = new LinearGradientBrush(new Point(0, 10), new Point(rect.Width + 2, 10)
+                        , Color.FromArgb(128, 96, 96, 96), Color.FromArgb(224, 0, 0, 0));
+                e.Graphics.FillRectangle(brush, 1, 1, rect.Width + 0, rect.Height + 0);
+                if (Value > 0)
+                {
+                    Rectangle clip = new Rectangle(rect.X, rect.Y, (int)Math.Round(((float)Value / Maximum) * rect.Width), rect.Height);
+                    var fillbrush = new LinearGradientBrush(new Point(0, 10), new Point(rect.Width + 2, 10)
+                            , Color.FromArgb(255, 0, 168, 0), Color.FromArgb(255, 0, 64, 168));
+                    ColorBlend c = new ColorBlend(3);
+                    c.Colors = new Color[3] { Color.FromArgb(255, 0, 32, 0), Color.FromArgb(255,0,255,64), Color.FromArgb(255, 0, 32, 0) };
+                    c.Positions = new float[3] { 0f, 0.5f, 1f };
+                    fillbrush.InterpolationColors= c;
+                    ProgressBarRenderer.DrawHorizontalChunks(g, clip);
+                    e.Graphics.FillRectangle(fillbrush, 1, 1, clip.Width + 0, clip.Height + 0);
+                }
+                int percent = (int)(((double)this.Value / (double)this.Maximum) * 100);
+                string text = DisplayStyle == ProgressBarDisplayText.Percentage ? percent.ToString() + '%' : CustomText;
+                using (Font f = new Font(FontFamily.GenericSerif, 9))
+                {
+                    SizeF len = g.MeasureString(text, f);
+                    Point location = new Point(Convert.ToInt32((Width - 15) - len.Width / 2), Convert.ToInt32((Height / 2) - len.Height / 2));
+                    g.DrawString(text, f, Brushes.Silver, location);
+                }
+            }
         }
         public class Prompt // Prompt window configuration
         {
@@ -202,28 +232,33 @@ namespace Crypt_It
                 return (c, t);
             }
         }
-        private static string Remain(TimeSpan time)
+        /// -------------------------- End Classes ------------------------------- ///
+        public static string Get_Time(long ms, bool s)
         {
-            
-            string hr; string mn = ""; string se;
-            if (time.Hours < 1) hr = ""; else hr = $"{time.Hours.ToString().PadLeft(1, '0')}:";
-            if (time.Hours > 9) hr = $"{(time.Hours.ToString().PadLeft(2, '0'))}:";
-            if (time.Hours > 0) mn = $"{(time.Minutes.ToString().PadLeft(2, '0'))}:";
-            if (time.Hours < 1) { mn = $"{time.Minutes.ToString().PadLeft(1, '0')}:"; }
-            se = $"{time.Seconds.ToString().PadLeft(2, '0')}";
-            return $"({hr}{mn}{se})";
-        }
-        public static string Elapsed(long ms)
-        {
-            string hr; string mn = ""; string se;
+            string hr; string mn; string se;
             TimeSpan t = TimeSpan.FromMilliseconds(ms);
             if (t.Hours < 1) hr = ""; else hr = $"{t.Hours.ToString().PadLeft(1, '0')}:";
             if (t.Hours > 9) hr = $"{(t.Hours.ToString().PadLeft(2, '0'))}:";
-            if (t.Hours > 0) mn = $"{(t.Minutes.ToString().PadLeft(2, '0'))}:";
-            if (t.Hours < 1) { mn = $"{t.Minutes.ToString().PadLeft(1, '0')}:"; }
-            if (t.Hours < 1 && t.Minutes < 1) mn = "";
+            if (t.Hours < 1 && t.Minutes < 1 && s) mn = ""; else mn = "0:";
+            if (t.Hours > 0 && mn != "") mn = $"{(t.Minutes.ToString().PadLeft(2, '0'))}:";
+            if (t.Hours < 1 && mn != "") { mn = $"{t.Minutes.ToString().PadLeft(1, '0')}:"; }
             se = $"{t.Seconds.ToString().PadLeft(2, '0')}";
-            return $"{hr}{mn}{se}.{t.Milliseconds}";
+            if (s && t.Minutes < 1) se = $"{t.Seconds.ToString().PadLeft(1, '0')}";
+            if (s) return $"{hr}{mn}{se}.{t.Milliseconds}"; else return $"({hr}{mn}{se})";
+        }
+        void Set_Options_Start()
+        {
+            PBar.Location = new System.Drawing.Point(15, 82);
+            PBar.Size = new System.Drawing.Size(320, 15);
+            PBar.ForeColor = Color.White;
+            Controls.Add(PBar);
+            var a = 128;
+            Color bcolor = Color.FromArgb(64, a, a, a);
+            AllowDrop = true;
+            DragEnter += new DragEventHandler(Crypt_It_DragEnter);
+            DragDrop += new DragEventHandler(Crypt_It_DragDrop);
+            Menu.BackColor = t_remain.BackColor = bcolor;
+            Menu.Renderer = new MyRender();
         }
         void Start_Working(bool a)
         {
@@ -349,7 +384,7 @@ namespace Crypt_It
                         if (b_Timer && FileNum == i_TotalFiles - 1)
                         {
                             long msf = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-                            string e_time = Elapsed(msf - ms);
+                            string e_time = Get_Time(msf - ms, true);
                             string s = "";
                             if (tfil > 1) s = "s";
                             MessageBoxButtons buttons = MessageBoxButtons.OK;
@@ -447,15 +482,15 @@ namespace Crypt_It
                 }
                 void Progress_Update()
                 {
-                    TimeSpan spent = DateTime.Now - start;
-                    int ts = (int)spent.TotalSeconds + 2;
-                    if (ts < 1) ts = 1;
-                    TimeSpan since = new TimeSpan(0, 0, (int)((l_tot - TotalLength) / (TotalLength / ts)));
+                    TimeSpan spent = (DateTime.Now - start);
+                    int tms = (int)spent.TotalMilliseconds + 2;
+                    if (tms < 1) tms = 1;
+                    var Elapsed = (l_tot - TotalLength) / (TotalLength / tms);
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
                     PBar.Update();
                     if (!t_remain.Visible) t_remain.Visible = true;
-                    t_remain.Text = Remain(since); //$"({hr}{mn}{se})";
+                    t_remain.Text = Get_Time(Elapsed, false);
                     if (i_TotalFiles > 1)
                     {
                         var c = Name_Length_Limit(i_TotalFiles - FileNum);
@@ -897,7 +932,6 @@ namespace Crypt_It
             }
             this.Close();
         }
-
         private void DryRunToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (!b_Working)

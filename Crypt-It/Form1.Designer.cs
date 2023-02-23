@@ -36,7 +36,6 @@ namespace Crypt_It
             this.SZ = new System.Windows.Forms.Label();
             this.Fname = new System.Windows.Forms.Label();
             this.Fsize = new System.Windows.Forms.Label();
-            this.PBar = new System.Windows.Forms.ProgressBar();
             this.label1 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.Pass = new System.Windows.Forms.TextBox();
@@ -117,13 +116,6 @@ namespace Crypt_It
             this.Fsize.TabIndex = 4;
             this.Fsize.Text = "label4";
             // 
-            // PBar
-            // 
-            this.PBar.Location = new System.Drawing.Point(15, 83);
-            this.PBar.Name = "PBar";
-            this.PBar.Size = new System.Drawing.Size(320, 13);
-            this.PBar.TabIndex = 5;
-            // 
             // label1
             // 
             this.label1.AutoSize = true;
@@ -148,6 +140,7 @@ namespace Crypt_It
             // 
             // Pass
             // 
+            this.Pass.BackColor = System.Drawing.Color.Silver;
             this.Pass.Location = new System.Drawing.Point(109, 35);
             this.Pass.Name = "Pass";
             this.Pass.Size = new System.Drawing.Size(137, 20);
@@ -156,6 +149,7 @@ namespace Crypt_It
             // 
             // PassC
             // 
+            this.PassC.BackColor = System.Drawing.Color.Silver;
             this.PassC.Location = new System.Drawing.Point(109, 57);
             this.PassC.Name = "PassC";
             this.PassC.Size = new System.Drawing.Size(137, 20);
@@ -409,9 +403,9 @@ namespace Crypt_It
             this.t_remain.ForeColor = System.Drawing.Color.Silver;
             this.t_remain.Location = new System.Drawing.Point(288, 5);
             this.t_remain.Name = "t_remain";
-            this.t_remain.Size = new System.Drawing.Size(44, 16);
+            this.t_remain.Size = new System.Drawing.Size(54, 16);
             this.t_remain.TabIndex = 18;
-            this.t_remain.Text = "label3";
+            this.t_remain.Text = "Remain";
             this.t_remain.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
             // Crypt_It
@@ -430,7 +424,6 @@ namespace Crypt_It
             this.Controls.Add(this.Pass);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.label1);
-            this.Controls.Add(this.PBar);
             this.Controls.Add(this.Fsize);
             this.Controls.Add(this.Fname);
             this.Controls.Add(this.SZ);
@@ -456,7 +449,6 @@ namespace Crypt_It
         private System.Windows.Forms.Label SZ;
         private System.Windows.Forms.Label Fname;
         private System.Windows.Forms.Label Fsize;
-        private System.Windows.Forms.ProgressBar PBar;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.TextBox Pass;
