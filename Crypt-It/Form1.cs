@@ -1,7 +1,7 @@
 ﻿using Crypt_It.Properties;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Text;
 using System.Threading;
@@ -11,7 +11,7 @@ using System.Windows.Forms;
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 22th 2023                       //
+//     Latest revision Feb 23th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -36,6 +36,7 @@ using System.Windows.Forms;
 ///  (done)  Added menu strip for ease of use. Looks cleaner than individual buttons and adds easier access to adjustable options
 ///  (done)  Added message box for the timer function instead of displaying it in the title bar
 ///  (done)  Added remaining time to menu strip and fixed the time format output for both time remaining and time elapsed.
+///  (done)  Added ability to drag multiple folders into the program for processing
 ///          Possibly add more steps to the encryption process
 
 namespace Crypt_It
@@ -43,7 +44,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.42";
+        readonly string Version = "v0.9.45";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -97,142 +98,7 @@ namespace Crypt_It
             Clear_Info();
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
-        /// --------------------------  Classes Start ------------------------------- ///
-        private class MyRender : ToolStripProfessionalRenderer
-        {
-            public MyRender() : base(new MyColorTable()) { }
-            protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
-            {
-                if (!e.Item.Selected)
-                {
-                    base.OnRenderMenuItemBackground(e);
-                    e.Item.ForeColor = Color.Silver;
-                }
-                else
-                {
-                    Rectangle menuRec = new Rectangle(Point.Empty, e.Item.Size);
-                    var grbrush = new LinearGradientBrush(new Point(0, 10), new Point(menuRec.Width, 10)
-                        , Color.FromArgb(62, 228, 228, 228), Color.FromArgb(255, 0, 0, 0));
-                    e.Graphics.FillRectangle(grbrush, menuRec);
-                    e.Graphics.DrawRectangle(Pens.Black, 0, 0, menuRec.Width - 1, menuRec.Height - 1);
-                    e.Item.ForeColor = Color.FromArgb(144, 255, 144);
-                }
-            }
-        }
-        public class MyColorTable : ProfessionalColorTable
-        {
-            public override Color MenuItemPressedGradientBegin => Color.Black;
-            public override Color MenuItemPressedGradientEnd => Color.DimGray;
-            public override Color MenuItemBorder => Color.Black;
-            public override Color MenuItemSelectedGradientBegin => Color.Black;
-            public override Color MenuItemSelectedGradientEnd => Color.DimGray;
-            public override Color ToolStripDropDownBackground => Color.FromArgb(215, 4, 4, 4);
-            public override Color ImageMarginGradientBegin => Color.FromArgb(255, 80, 80, 80);
-            public override Color ImageMarginGradientMiddle => Color.FromArgb(255, 80, 80, 80);
-            public override Color ImageMarginGradientEnd => Color.FromArgb(255, 80, 80, 80);
-            public override Color SeparatorDark => Color.Silver;
-            public override Color MenuBorder => Color.DimGray;
-        }
-        public enum ProgressBarDisplayText { Percentage, CustomText }
-        public class CustomProgressBar : ProgressBar
-        {
-            public ProgressBarDisplayText DisplayStyle { get; set; }
-            public String CustomText { get; set; }
-            public CustomProgressBar()
-            {
-                SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
-            }
-            protected override void OnPaint(PaintEventArgs e)
-            {
-                Rectangle rect = ClientRectangle;
-                Graphics g = e.Graphics;
-                ProgressBarRenderer.DrawHorizontalBar(g, rect);
-                rect.Inflate(-1, -1);
-                var brush = new LinearGradientBrush(new Point(0, 10), new Point(rect.Width + 2, 10)
-                        , Color.FromArgb(128, 96, 96, 96), Color.FromArgb(224, 0, 0, 0));
-                e.Graphics.FillRectangle(brush, 1, 1, rect.Width + 0, rect.Height + 0);
-                if (Value > 0)
-                {
-                    Rectangle clip = new Rectangle(rect.X, rect.Y, (int)Math.Round(((float)Value / Maximum) * rect.Width), rect.Height);
-                    var fillbrush = new LinearGradientBrush(new Point(0, 10), new Point(rect.Width + 2, 10)
-                            , Color.FromArgb(255, 0, 168, 0), Color.FromArgb(255, 0, 64, 168));
-                    ColorBlend c = new ColorBlend(3);
-                    c.Colors = new Color[3] { Color.FromArgb(255, 0, 32, 0), Color.FromArgb(255,0,255,64), Color.FromArgb(255, 0, 32, 0) };
-                    c.Positions = new float[3] { 0f, 0.5f, 1f };
-                    fillbrush.InterpolationColors= c;
-                    ProgressBarRenderer.DrawHorizontalChunks(g, clip);
-                    e.Graphics.FillRectangle(fillbrush, 1, 1, clip.Width + 0, clip.Height + 0);
-                }
-                int percent = (int)(((double)this.Value / (double)this.Maximum) * 100);
-                string text = DisplayStyle == ProgressBarDisplayText.Percentage ? percent.ToString() + '%' : CustomText;
-                using (Font f = new Font(FontFamily.GenericSerif, 9))
-                {
-                    SizeF len = g.MeasureString(text, f);
-                    Point location = new Point(Convert.ToInt32((Width - 15) - len.Width / 2), Convert.ToInt32((Height / 2) - len.Height / 2));
-                    g.DrawString(text, f, Brushes.Silver, location);
-                }
-            }
-        }
-        public class Prompt // Prompt window configuration
-        {
-            public static (int, bool) ShowDialog(string text, string caption, int cv)
-            {
-                bool t = false;
-                Form prompt = new Form
-                {
-                    Width = 200,
-                    Height = 120,
-                    FormBorderStyle = FormBorderStyle.FixedDialog,
-                    Text = caption,
-                    StartPosition = FormStartPosition.CenterScreen,
-                    ControlBox = false
-                };
-                Label textLabel = new Label()
-                {
-                    Left = 35,
-                    Top = 18,
-                    Text = text
-                };
-                NumericUpDown textBox = new NumericUpDown
-                {
-                    Left = 75,
-                    Top = 15,
-                    Width = 50,
-                    Value = cv,
-                    Maximum = 255,
-                    Minimum = 1
-                };
-                Button confirmation = new Button()
-                {
-                    Text = "Ok",
-                    Left = 30,
-                    Width = 50,
-                    Top = 40,
-                    DialogResult = DialogResult.OK
-                };
-                Button cancel = new Button()
-                {
-                    Text = "Cancel",
-                    Left = 80,
-                    Width = 65,
-                    Top = 40,
-                    DialogResult = DialogResult.Cancel
-                };
-                confirmation.Click += (sender, e) => { prompt.Close(); };
-                prompt.Controls.Add(textBox);
-                prompt.Controls.Add(confirmation);
-                prompt.Controls.Add(cancel);
-                prompt.Controls.Add(textLabel);
-                prompt.AcceptButton = confirmation;
-                prompt.CancelButton = cancel;
-                var c = 0;
-                var dr = (prompt.ShowDialog());
-                if (dr == DialogResult.OK) c = (int)textBox.Value; else c = cv;
-                if (dr == DialogResult.Cancel) t = true;
-                return (c, t);
-            }
-        }
-        /// -------------------------- End Classes ------------------------------- ///
+        
         public static string Get_Time(long ms, bool s)
         {
             string hr; string mn; string se;
@@ -376,7 +242,7 @@ namespace Crypt_It
                             try
                             {
                                 if (b_Hide) Set_File_Hidden(s_OutFile[FileNum], "u");
-                                if (File.Exists(s_OutFile[FileNum])) File.Delete(s_OutFile[FileNum]);
+                                if (System.IO.File.Exists(s_OutFile[FileNum])) System.IO.File.Delete(s_OutFile[FileNum]);
                             }
                             catch { }
                         }
@@ -397,7 +263,7 @@ namespace Crypt_It
                         {
                             try
                             {
-                                if (File.Exists(s_NewFile[FileNum])) File.Delete(s_NewFile[FileNum]);
+                                if (System.IO.File.Exists(s_NewFile[FileNum])) System.IO.File.Delete(s_NewFile[FileNum]);
                             }
                             catch { }
                         }
@@ -437,7 +303,7 @@ namespace Crypt_It
                         else { mes = null; mes2 = "s"; }
                         for (int w = 0; w < s_OutFile.Length; w++)
                         {
-                            if (File.Exists(s_OutFile[w])) e++;
+                            if (System.IO.File.Exists(s_OutFile[w])) e++;
                         }
                         b_OverwriteChecked = true;
                         if (e > 0)
@@ -459,7 +325,7 @@ namespace Crypt_It
                     }
                     if (!b_Yclick)
                     {
-                        if (File.Exists(s_OutFile[FileNum]))
+                        if (System.IO.File.Exists(s_OutFile[FileNum]))
                         {
                             Stream?.Close();
                             b_DoWork = (FileNum != i_TotalFiles - 1);
@@ -470,22 +336,23 @@ namespace Crypt_It
                     }
                     if (b_Yclick)
                     {
-                        try { File.Delete(f); } catch { }
-                        b_Overwrite = (!File.Exists(f));
+                        try { System.IO.File.Delete(f); } catch { }
+                        b_Overwrite = (!System.IO.File.Exists(f));
                     }
                 }
                 //----------------------- end of main file process void -- sub voids follow --------------------------
                 void Set_File_Hidden(string f, string a)
                 {
-                    if (a == "h") try { File.SetAttributes(f, File.GetAttributes(f) | FileAttributes.Hidden); } catch { } // hide file
-                    if (a == "u") try { File.SetAttributes(f, File.GetAttributes(f) & ~FileAttributes.Hidden); } catch { } // unhide file
+                    if (a == "h") try { System.IO.File.SetAttributes(f, System.IO.File.GetAttributes(f) | FileAttributes.Hidden); } catch { } // hide file
+                    if (a == "u") try { System.IO.File.SetAttributes(f, System.IO.File.GetAttributes(f) & ~FileAttributes.Hidden); } catch { } // unhide file
                 }
                 void Progress_Update()
                 {
                     TimeSpan spent = (DateTime.Now - start);
                     int tms = (int)spent.TotalMilliseconds + 2;
                     if (tms < 1) tms = 1;
-                    var Elapsed = (l_tot - TotalLength) / (TotalLength / tms);
+                    long Elapsed = 0;
+                    if (TotalLength > tms) Elapsed = (l_tot - TotalLength) / (TotalLength / tms);
                     double prog = 100.0 * TotalLength / l_tot;
                     PBar.Value = (int)prog;
                     PBar.Update();
@@ -494,7 +361,7 @@ namespace Crypt_It
                     if (i_TotalFiles > 1)
                     {
                         var c = Name_Length_Limit(i_TotalFiles - FileNum);
-                        Fname.Text = $"(File {s_NewFile.Length - FileNum}) {Trunc(s_NewFile[FileNum], 42 - c)}";
+                        Fname.Text = $"(File {(s_NewFile.Length - FileNum):N0}) {Trunc(s_NewFile[FileNum], 42 - c)}";
                     }
                     Fsize.Text = $"{(l_tot - TotalLength) >> 10:N0} kb remaining.";
                     if (b_MultiThread) thd.Text = $"(Multi-Threaded x{i_Cores + 1})"; else thd.Text = null;
@@ -655,51 +522,56 @@ namespace Crypt_It
                 if (s_NewFile.Length == 0) Clear_Info();
             }
             if (s_DropFiles.Length >= 1 && s_DropFiles[0] != "no files") Sort();
-            else Clear_Info();
-            Options();
+            else { Clear_Info(); Options(); }
             this.ActiveControl = Pass;
-            void Sort()
+            async void Sort()
             {
-                if (s_DropFiles[0] != "" && s_DropFiles[0] != "no files") l = s_DropFiles.Length;
-                else l = 0;
-                int x = 0; l_tot = 0;
-                string[] temp = new string[l];
-                long[] temp2 = new long[l];
-                bool b_CryptFile = true;
-                for (int i = 0; i < l; i++)
+                this.Text = "Checking files.";
+                await Task.Run(delegate
                 {
-                    var s = new System.IO.FileInfo(s_DropFiles[i]).Length;
-                    if (s > 0) { temp[x] = s_DropFiles[i]; temp2[x] = s; x++; }
-                }
-                if (x > 0)
-                {
-                    l_FileSize = new long[x];
-                    s_NewFile = new string[x];
-                    s_OutFile = new string[x];
-                    i_TotalFiles = x;
-                    for (int i = 0; i < x; i++)
+                    if (s_DropFiles[0] != "" && s_DropFiles[0] != "no files") l = s_DropFiles.Length;
+                    else l = 0;
+                    int x = 0; l_tot = 0;
+                    string[] temp = new string[l];
+                    long[] temp2 = new long[l];
+                    bool b_CryptFile = true;
+                    for (int i = 0; i < l; i++)
                     {
-                        s_NewFile[i] = temp[i];
-                        l_tot += temp2[i];
-                        l_FileSize[i] = temp2[i];
-                        if (Path.GetExtension(s_NewFile[i]) != ".crypt") { s_OutFile[i] = $"{s_NewFile[i]}.crypt"; b_CryptFile = false; }
-                        else s_OutFile[i] = $@"{Path.GetDirectoryName(s_NewFile[i])}\{Path.GetFileNameWithoutExtension(s_NewFile[i])}";
+                        var s = new System.IO.FileInfo(s_DropFiles[i]).Length;
+                        if (s > 0) { temp[x] = s_DropFiles[i]; temp2[x] = s; x++; }
                     }
-                    if (s_NewFile.Length == 1) { Fname.Text = Trunc(s_NewFile[0], 52); Fname.Visible = true; }
-                    if (s_NewFile.Length > 1) { Fname.Text = $"Batch file process ({s_NewFile.Length}) files."; Fname.Visible = true; }
-                    if (s_NewFile.Length >= 1) { Fsize.Text = $"{l_tot >> 10:N0}  kb"; Fsize.ForeColor = Color.Silver; }
-                    else { Fname.Visible = Fsize.Visible = false; }
-                    b_Reverse = msDec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
-                }
-                else
-                {
-                    l_FileSize = new long[x];
-                    s_NewFile = new string[x];
-                    s_OutFile = new string[x];
-                    i_TotalFiles = x;
-                }
-                if (b_CryptFile && l_tot > 0) b_Reverse = msDec.Checked = true;
-                else b_Reverse = msDec.Checked = false;
+                    if (x > 0)
+                    {
+                        l_FileSize = new long[x];
+                        s_NewFile = new string[x];
+                        s_OutFile = new string[x];
+                        i_TotalFiles = x;
+                        for (int i = 0; i < x; i++)
+                        {
+                            s_NewFile[i] = temp[i];
+                            l_tot += temp2[i];
+                            l_FileSize[i] = temp2[i];
+                            if (Path.GetExtension(s_NewFile[i]) != ".crypt") { s_OutFile[i] = $"{s_NewFile[i]}.crypt"; b_CryptFile = false; }
+                            else s_OutFile[i] = $@"{Path.GetDirectoryName(s_NewFile[i])}\{Path.GetFileNameWithoutExtension(s_NewFile[i])}";
+                        }
+                        if (s_NewFile.Length == 1) this.Invoke(new Action(() => { Fname.Text = Trunc(s_NewFile[0], 52); Fname.Visible = true; }));
+                        if (s_NewFile.Length > 1) this.Invoke(new Action(() => { Fname.Text = $"Batch file process ({s_NewFile.Length:N0}) files."; Fname.Visible = true; }));
+                        if (s_NewFile.Length >= 1) this.Invoke(new Action(() => { Fsize.Text = $"{l_tot >> 10:N0}  kb"; Fsize.ForeColor = Color.Silver; }));
+                        else this.Invoke(new Action(() => { Fname.Visible = Fsize.Visible = false; }));
+                        b_Reverse = msDec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
+                    }
+                    else
+                    {
+                        l_FileSize = new long[x];
+                        s_NewFile = new string[x];
+                        s_OutFile = new string[x];
+                        i_TotalFiles = x;
+                    }
+                    if (b_CryptFile && l_tot > 0) b_Reverse = msDec.Checked = true;
+                    else b_Reverse = msDec.Checked = false;
+                });
+                this.Text = $"{Program} {Version}";
+                Options();
             }
         }
         private (byte[], byte[], byte[]) Make_Keys()
@@ -793,39 +665,47 @@ namespace Crypt_It
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop)) e.Effect = DragDropEffects.Copy;
         }
-        void Crypt_It_DragDrop(object sender, DragEventArgs e)
+        async void Crypt_It_DragDrop(object sender, DragEventArgs e)
         {
             if (!b_Working)
             {
-                int x = 0;
-                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                string[] Ffiles = new string[0];
-                var DFiles = new string[files.Length];
-                foreach (string file in files)
+                string[] File_List = (string[])e.Data.GetData(DataFormats.FileDrop);
+                var files = new List<string>();
+                this.Text = "Processing File List.";
+                await Task.Run(delegate
                 {
-                    if (!Directory.Exists(file))
+                    foreach (string file in File_List)
                     {
-                        DFiles[x] = file;
-                        x++;
+                        if (!Directory.Exists(file))
+                        {
+                            try { if (Check_File(file)) files.Add(file); } catch { }
+                        }
+                        else
+                        {
+                            try
+                            {
+                                var Folder_files = Directory.GetFiles(file, "*", SearchOption.AllDirectories);
+                                foreach (string folfile in Folder_files) if (Check_File(folfile)) files.Add(folfile);
+                            }
+                            catch { }
+                        }
                     }
-                    else Ffiles = Directory.GetFiles(file, "*", SearchOption.AllDirectories);
-                    var FolderFiles = new string[Ffiles.Length];
-                    s_DropFiles = new string[x + Ffiles.Length];
-                    for (int i = 0; i < x; i++)
-                    {
-                        s_DropFiles[i] = DFiles[i];
-                    }
-                    for (int i = 0; i < Ffiles.Length; i++)
-                    {
-                        s_DropFiles[i + x] = Ffiles[i];
-                    }
-                }
+                });
+                s_DropFiles = files.ToArray();
+                files.Clear();
+                this.Text = $"{Program} {Version} {files.Count} {s_DropFiles.Length}";
                 if (s_DropFiles.Length == 0)
                 {
                     s_DropFiles = new string[1];
                     s_DropFiles[0] = "no files";
                 }
                 Filter_Files();
+            }
+            bool Check_File(string s)
+            {
+                long l = 0;
+                if (System.IO.File.Exists(s)) l = new System.IO.FileInfo(s).Length;
+                if (l > 0) return true; else return false;
             }
         }
         private void StartToolStripMenuItem_Click(object sender, EventArgs e)
