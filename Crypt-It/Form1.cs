@@ -1,6 +1,7 @@
 ﻿using Crypt_It.Properties;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Text;
@@ -11,7 +12,7 @@ using System.Windows.Forms;
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 23th 2023                       //
+//     Latest revision Feb 24th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -37,6 +38,7 @@ using System.Windows.Forms;
 ///  (done)  Added message box for the timer function instead of displaying it in the title bar
 ///  (done)  Added remaining time to menu strip and fixed the time format output for both time remaining and time elapsed.
 ///  (done)  Added ability to drag multiple folders into the program for processing
+///  (fixed) Fixed bug where Open File and Batch File button didn't do anything and returned to main screen
 ///          Possibly add more steps to the encryption process
 
 namespace Crypt_It
@@ -44,7 +46,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.45";
+        readonly string Version = "v0.9.47";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         bool b_Set_Cores = false; // override automatic core detection for threading
         int i_CoreVal = 4; // set number of cpu cores to use for threading
@@ -66,6 +68,7 @@ namespace Crypt_It
         bool b_msDCHK = false;
         bool b_Thread_Cancel = false;
         bool b_DryRun = false;
+        bool b_Drop = false;
         string[] s_NewFile = new string[0];
         string[] s_OutFile = new string[0];
         string[] s_DropFiles = new string[0];
@@ -98,7 +101,7 @@ namespace Crypt_It
             Clear_Info();
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
-        
+
         public static string Get_Time(long ms, bool s)
         {
             string hr; string mn; string se;
@@ -137,14 +140,13 @@ namespace Crypt_It
         void Clear_Info()
         {
             s_NewFile = new string[0];
-            s_DropFiles = new string[1];
-            s_DropFiles[0] = "";
+            s_DropFiles = new string[0];
             thd.Text = "";
             l_FileSize = new long[0];
             PBar.Value = 0;
             s_Password = s_PasswdConf = Pass.Text = PassC.Text = "";
             if (!b_msDCHK) b_Reverse = msDec.Checked = msClear.Visible = false;
-            b_Overwrite = b_OverwriteChecked = b_Yclick = msStart.Enabled = b_msDCHK = t_remain.Visible = b_Cancel = false;
+            b_Overwrite = b_OverwriteChecked = b_Yclick = msStart.Enabled = b_msDCHK = t_remain.Visible = b_Drop = b_Cancel = false;
         }
         async void Process_File_List()
         {
@@ -226,6 +228,8 @@ namespace Crypt_It
                                 for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
                                 if (!b_DryRun) for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
+                                Array.Clear(bt_Output, 0, bt_Output.Length);
+                                Array.Clear(chunk, 0, chunk.Length);
                                 Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
                                 if (Cur_Time >= Update_Interval | TotalLength == l_tot)
                                 {
@@ -334,7 +338,7 @@ namespace Crypt_It
                         }
                         else b_Overwrite = true;
                     }
-                    if (b_Yclick)
+                    if (b_Yclick && !b_DryRun)
                     {
                         try { System.IO.File.Delete(f); } catch { }
                         b_Overwrite = (!System.IO.File.Exists(f));
@@ -506,12 +510,14 @@ namespace Crypt_It
         }
         void Filter_Files()
         {
-            if (s_DropFiles[0] == "")
+            if (!b_Drop)
             {
+                var s ="";
                 if (b_Reverse && msDec.Checked) this.openFileDialog1.Filter = "Crypt-It Files (*.crypt)|*.crypt|All files (*.*)|*.*";
                 else this.openFileDialog1.Filter = "All files (*.*)|*.*|Crypt-It Files (*.crypt)|*.crypt";
                 openFileDialog1.FileName = "";
-                openFileDialog1.Title = "Open file to encrypt";
+                if (openFileDialog1.Multiselect) s = "s"; else s = "";
+                openFileDialog1.Title = $"Open file{s} to encrypt";
                 openFileDialog1.ShowDialog();
                 if (openFileDialog1.FileName.Length > 0)
                 {
@@ -519,26 +525,38 @@ namespace Crypt_It
                     Sort();
                 }
                 else Clear_Info();
-                if (s_NewFile.Length == 0) Clear_Info();
             }
-            if (s_DropFiles.Length >= 1 && s_DropFiles[0] != "no files") Sort();
-            else { Clear_Info(); Options(); }
+            if (b_Drop) if (s_DropFiles.Length > 0) Sort();
+                else { Clear_Info(); Options(); }
             this.ActiveControl = Pass;
             async void Sort()
             {
                 this.Text = "Checking files.";
+                bool b_CryptFile = true;
                 await Task.Run(delegate
                 {
-                    if (s_DropFiles[0] != "" && s_DropFiles[0] != "no files") l = s_DropFiles.Length;
+                    b_Working = true;
+                    if (s_DropFiles.Length > 0) l = s_DropFiles.Length;
                     else l = 0;
                     int x = 0; l_tot = 0;
                     string[] temp = new string[l];
                     long[] temp2 = new long[l];
-                    bool b_CryptFile = true;
+                    long Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                    long Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
                     for (int i = 0; i < l; i++)
                     {
-                        var s = new System.IO.FileInfo(s_DropFiles[i]).Length;
-                        if (s > 0) { temp[x] = s_DropFiles[i]; temp2[x] = s; x++; }
+                        try
+                        {
+                            var s = new System.IO.FileInfo(s_DropFiles[i]).Length;
+                            if (s > 0) { temp[x] = s_DropFiles[i]; temp2[x] = s; x++; }
+                            Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+                            if (Cur_Time >= Update_Interval)
+                            {
+                                Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + ut;
+                                this.Invoke(new Action(() => { this.Text = $"Checking Files ({i:N0})"; })) ;
+                            }
+                        }
+                        catch (Exception) { }
                     }
                     if (x > 0)
                     {
@@ -554,22 +572,18 @@ namespace Crypt_It
                             if (Path.GetExtension(s_NewFile[i]) != ".crypt") { s_OutFile[i] = $"{s_NewFile[i]}.crypt"; b_CryptFile = false; }
                             else s_OutFile[i] = $@"{Path.GetDirectoryName(s_NewFile[i])}\{Path.GetFileNameWithoutExtension(s_NewFile[i])}";
                         }
-                        if (s_NewFile.Length == 1) this.Invoke(new Action(() => { Fname.Text = Trunc(s_NewFile[0], 52); Fname.Visible = true; }));
-                        if (s_NewFile.Length > 1) this.Invoke(new Action(() => { Fname.Text = $"Batch file process ({s_NewFile.Length:N0}) files."; Fname.Visible = true; }));
-                        if (s_NewFile.Length >= 1) this.Invoke(new Action(() => { Fsize.Text = $"{l_tot >> 10:N0}  kb"; Fsize.ForeColor = Color.Silver; }));
-                        else this.Invoke(new Action(() => { Fname.Visible = Fsize.Visible = false; }));
-                        b_Reverse = msDec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
                     }
-                    else
-                    {
-                        l_FileSize = new long[x];
-                        s_NewFile = new string[x];
-                        s_OutFile = new string[x];
-                        i_TotalFiles = x;
-                    }
-                    if (b_CryptFile && l_tot > 0) b_Reverse = msDec.Checked = true;
-                    else b_Reverse = msDec.Checked = false;
+                    Array.Clear(temp, 0, temp.Length);
+                    Array.Clear(temp2, 0, temp2.Length);
                 });
+                if (s_NewFile.Length == 1) { Fname.Text = Trunc(s_NewFile[0], 52); Fname.Visible = true; }
+                if (s_NewFile.Length > 1) { Fname.Text = $"Batch file process ({s_NewFile.Length:N0}) files."; Fname.Visible = true; }
+                if (s_NewFile.Length >= 1) { Fsize.Text = $"{l_tot >> 10:N0}  kb"; Fsize.ForeColor = Color.Silver; }
+                else { Fname.Visible = Fsize.Visible = false; }
+                if (b_CryptFile && l_tot > 0) b_Reverse = msDec.Checked = true;
+                else b_Reverse = msDec.Checked = false;
+                b_Working = b_Drop = false;
+                b_Reverse = msDec.Checked = (s_NewFile.Length == 1 && Path.GetExtension(s_NewFile[0]) == ".crypt");
                 this.Text = $"{Program} {Version}";
                 Options();
             }
@@ -669,43 +683,36 @@ namespace Crypt_It
         {
             if (!b_Working)
             {
+                Clear_Info();
+                Options();
+                b_Drop = true;
                 string[] File_List = (string[])e.Data.GetData(DataFormats.FileDrop);
                 var files = new List<string>();
-                this.Text = "Processing File List.";
+                this.Text = "Retrieving File List.";
                 await Task.Run(delegate
                 {
+                    b_Working = true;
                     foreach (string file in File_List)
                     {
-                        if (!Directory.Exists(file))
+                        try
                         {
-                            try { if (Check_File(file)) files.Add(file); } catch { }
-                        }
-                        else
-                        {
-                            try
+                            if (!Directory.Exists(file)) files.Add(file); 
+                            else
                             {
                                 var Folder_files = Directory.GetFiles(file, "*", SearchOption.AllDirectories);
-                                foreach (string folfile in Folder_files) if (Check_File(folfile)) files.Add(folfile);
+                                foreach (string folfile in Folder_files) files.Add(folfile);
                             }
-                            catch { }
                         }
+                        catch (Exception) { }
                     }
+                    b_Working = false;
+                    
                 });
                 s_DropFiles = files.ToArray();
                 files.Clear();
-                this.Text = $"{Program} {Version} {files.Count} {s_DropFiles.Length}";
-                if (s_DropFiles.Length == 0)
-                {
-                    s_DropFiles = new string[1];
-                    s_DropFiles[0] = "no files";
-                }
+                Array.Clear(File_List, 0, File_List.Length);
+                this.Text = $"{Program} {Version} Invalid Files!";
                 Filter_Files();
-            }
-            bool Check_File(string s)
-            {
-                long l = 0;
-                if (System.IO.File.Exists(s)) l = new System.IO.FileInfo(s).Length;
-                if (l > 0) return true; else return false;
             }
         }
         private void StartToolStripMenuItem_Click(object sender, EventArgs e)
@@ -819,6 +826,11 @@ namespace Crypt_It
                 if (msDryRun.Checked) b_DryRun = msDryRun.Checked = false;
                 else { msDryRun.Checked = b_DryRun = true; b_DelSource = msDelFile.Checked = false; }
             }
+        }
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            Application.Exit();
+            Environment.Exit(0);
         }
     }
 }
