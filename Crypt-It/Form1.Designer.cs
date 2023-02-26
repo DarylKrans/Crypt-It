@@ -64,6 +64,7 @@ namespace Crypt_It
             this.msClear = new System.Windows.Forms.ToolStripMenuItem();
             this.msSorry = new System.Windows.Forms.ToolStripMenuItem();
             this.t_remain = new System.Windows.Forms.Label();
+            this.pathLabel = new System.Windows.Forms.Label();
             this.Menu.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -401,12 +402,24 @@ namespace Crypt_It
             this.t_remain.BackColor = System.Drawing.Color.Transparent;
             this.t_remain.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.t_remain.ForeColor = System.Drawing.Color.Silver;
-            this.t_remain.Location = new System.Drawing.Point(288, 5);
+            this.t_remain.Location = new System.Drawing.Point(270, 5);
             this.t_remain.Name = "t_remain";
             this.t_remain.Size = new System.Drawing.Size(54, 16);
             this.t_remain.TabIndex = 18;
             this.t_remain.Text = "Remain";
             this.t_remain.TextAlign = System.Drawing.ContentAlignment.TopRight;
+            // 
+            // pathLabel
+            // 
+            this.pathLabel.AutoSize = true;
+            this.pathLabel.BackColor = System.Drawing.Color.Transparent;
+            this.pathLabel.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.pathLabel.ForeColor = System.Drawing.Color.Silver;
+            this.pathLabel.Location = new System.Drawing.Point(0, 83);
+            this.pathLabel.Name = "pathLabel";
+            this.pathLabel.Size = new System.Drawing.Size(35, 14);
+            this.pathLabel.TabIndex = 19;
+            this.pathLabel.Text = "null";
             // 
             // Crypt_It
             // 
@@ -415,6 +428,7 @@ namespace Crypt_It
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
             this.ClientSize = new System.Drawing.Size(344, 132);
+            this.Controls.Add(this.pathLabel);
             this.Controls.Add(this.t_remain);
             this.Controls.Add(this.Menu);
             this.Controls.Add(this.thd);
@@ -477,6 +491,7 @@ namespace Crypt_It
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripSeparator toolStripSeparator3;
         private ToolStripMenuItem msDryRun;
+        private Label pathLabel;
     }
 }
 

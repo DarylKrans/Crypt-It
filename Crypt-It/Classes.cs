@@ -8,9 +8,56 @@ namespace Crypt_It
     /// <summary>
     /// Menu strip class
     /// </summary>
+    public static class B
+    {
+        public static bool Set_Cores = false; // override automatic core detection for threading
+        public static bool Timer = false; // set to true to show time it took to complete the encrypt/decrypt process 
+        public static bool TestFile = false; // set to true to set the output file to C:\testfile.(bin/crypt)
+        public static bool Reverse = false; // don't mess with this (just use the "decrypt" button)
+        public static bool DelSource = false;    // WARNING!! Set to true if you want the source file(s) deleted after encrypt/decrypt process
+        /// ------- Personal Preference --------
+        public static readonly bool Hide_Files = false;  // set to true to hide output file(s) during encrypt/decrypt process
+        public static bool LastChance = false;
+        public static bool Working = false;
+        public static bool Cancel = false;
+        public static bool MultiThread = false;
+        public static bool Overwrite = false;
+        public static bool YesClick = false;
+        public static bool Overwrite_Checked = false;
+        public static bool msDCHK = false;
+        public static bool Thread_Cancel = false;
+        public static bool DryRun = false;
+        public static bool Drop = false;
+    }
+    public static class File  // Global variables used by both (Iwad) and (Dwad) functions
+    {
+        public static string[] NewFile = new string[0];
+        public static string[] OutFile = new string[0];
+        public static long[] FileSize = new long[0];
+        public static long l_tot;
+        public static int i_TotalFiles;
+        public static bool cryptfile;
+        public static int FileNum;
+
+        public static void Enumerate()
+        {
+            i_TotalFiles = NewFile.Length;
+            l_tot = 0;
+            for (int i = 0; i < FileSize.Length; i++)
+            {
+                l_tot += FileSize[i];
+            }
+        }
+    }
+    public static class T
+    {
+        public static readonly long UpdateInterval = 250; // sets update interval in miliseconds
+        public static long Cur_Time;
+        public static long Update_Interval;
+    }
     public class MyRender : ToolStripProfessionalRenderer
     {
-        public MyRender() : base(new MyColorTable()) { }
+        public MyRender() : base(new ColorTable()) { }
         protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
         {
             if (!e.Item.Selected)
@@ -29,7 +76,7 @@ namespace Crypt_It
             }
         }
     }
-    public class MyColorTable : ProfessionalColorTable
+    public class ColorTable : ProfessionalColorTable
     {
         public override Color MenuItemPressedGradientBegin => Color.Black;
         public override Color MenuItemPressedGradientEnd => Color.DimGray;
