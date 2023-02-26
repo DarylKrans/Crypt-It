@@ -42,7 +42,6 @@ namespace Crypt_It
             this.PassC = new System.Windows.Forms.TextBox();
             this.CheckBox1 = new System.Windows.Forms.CheckBox();
             this.Match = new System.Windows.Forms.Label();
-            this.thd = new System.Windows.Forms.Label();
             this.Menu = new System.Windows.Forms.MenuStrip();
             this.fileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -64,8 +63,12 @@ namespace Crypt_It
             this.msClear = new System.Windows.Forms.ToolStripMenuItem();
             this.msSorry = new System.Windows.Forms.ToolStripMenuItem();
             this.t_remain = new System.Windows.Forms.Label();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.thd = new System.Windows.Forms.Label();
+            this.SelectedOptions = new System.Windows.Forms.Label();
             this.pathLabel = new System.Windows.Forms.Label();
             this.Menu.SuspendLayout();
+            this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
             // openFileDialog1
@@ -180,16 +183,6 @@ namespace Crypt_It
             this.Match.Size = new System.Drawing.Size(54, 13);
             this.Match.TabIndex = 12;
             this.Match.Text = "No Match";
-            // 
-            // thd
-            // 
-            this.thd.AutoSize = true;
-            this.thd.BackColor = System.Drawing.Color.Transparent;
-            this.thd.ForeColor = System.Drawing.Color.Silver;
-            this.thd.Location = new System.Drawing.Point(270, 112);
-            this.thd.Name = "thd";
-            this.thd.Size = new System.Drawing.Size(0, 13);
-            this.thd.TabIndex = 16;
             // 
             // Menu
             // 
@@ -409,16 +402,45 @@ namespace Crypt_It
             this.t_remain.Text = "Remain";
             this.t_remain.TextAlign = System.Drawing.ContentAlignment.TopRight;
             // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.SelectedOptions);
+            this.panel1.Controls.Add(this.thd);
+            this.panel1.Location = new System.Drawing.Point(0, 132);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(344, 24);
+            this.panel1.TabIndex = 20;
+            // 
+            // thd
+            // 
+            this.thd.AutoSize = true;
+            this.thd.BackColor = System.Drawing.Color.Transparent;
+            this.thd.ForeColor = System.Drawing.Color.Silver;
+            this.thd.Location = new System.Drawing.Point(270, 5);
+            this.thd.Name = "thd";
+            this.thd.Size = new System.Drawing.Size(0, 13);
+            this.thd.TabIndex = 17;
+            // 
+            // SelectedOptions
+            // 
+            this.SelectedOptions.AutoSize = true;
+            this.SelectedOptions.BackColor = System.Drawing.Color.Transparent;
+            this.SelectedOptions.Location = new System.Drawing.Point(1, 5);
+            this.SelectedOptions.Name = "SelectedOptions";
+            this.SelectedOptions.Size = new System.Drawing.Size(35, 13);
+            this.SelectedOptions.TabIndex = 21;
+            this.SelectedOptions.Text = "label3";
+            // 
             // pathLabel
             // 
             this.pathLabel.AutoSize = true;
             this.pathLabel.BackColor = System.Drawing.Color.Transparent;
             this.pathLabel.Font = new System.Drawing.Font("Courier New", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.pathLabel.ForeColor = System.Drawing.Color.Silver;
-            this.pathLabel.Location = new System.Drawing.Point(0, 83);
+            this.pathLabel.Location = new System.Drawing.Point(-1, 82);
             this.pathLabel.Name = "pathLabel";
             this.pathLabel.Size = new System.Drawing.Size(35, 14);
-            this.pathLabel.TabIndex = 19;
+            this.pathLabel.TabIndex = 21;
             this.pathLabel.Text = "null";
             // 
             // Crypt_It
@@ -427,11 +449,11 @@ namespace Crypt_It
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(64)))), ((int)(((byte)(64)))), ((int)(((byte)(64)))));
             this.BackgroundImage = ((System.Drawing.Image)(resources.GetObject("$this.BackgroundImage")));
-            this.ClientSize = new System.Drawing.Size(344, 132);
+            this.ClientSize = new System.Drawing.Size(344, 157);
             this.Controls.Add(this.pathLabel);
+            this.Controls.Add(this.panel1);
             this.Controls.Add(this.t_remain);
             this.Controls.Add(this.Menu);
-            this.Controls.Add(this.thd);
             this.Controls.Add(this.Match);
             this.Controls.Add(this.CheckBox1);
             this.Controls.Add(this.PassC);
@@ -451,6 +473,8 @@ namespace Crypt_It
             this.Text = "Crypt-It";
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -469,7 +493,6 @@ namespace Crypt_It
         private System.Windows.Forms.TextBox PassC;
         private System.Windows.Forms.CheckBox CheckBox1;
         private System.Windows.Forms.Label Match;
-        private System.Windows.Forms.Label thd;
         private new System.Windows.Forms.MenuStrip Menu;
         private System.Windows.Forms.ToolStripMenuItem fileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
@@ -491,6 +514,9 @@ namespace Crypt_It
         private ToolStripSeparator toolStripSeparator1;
         private ToolStripSeparator toolStripSeparator3;
         private ToolStripMenuItem msDryRun;
+        private Panel panel1;
+        private Label thd;
+        private Label SelectedOptions;
         private Label pathLabel;
     }
 }

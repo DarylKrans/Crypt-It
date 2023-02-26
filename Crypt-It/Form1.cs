@@ -41,6 +41,7 @@ using System.Windows.Forms;
 ///  (done)  Fixed bug where Open File and Batch File button didn't do anything and returned to main screen
 ///  (done)  Added progress indicator to taskbark
 ///  (done)  Added NuGet package Costura.Fody to embed external DLL files into the executable on compile
+///  (done)  Added status bar to the bottom that displays selected options and other potentially useful information
 ///          Possibly add more steps to the encryption process
 
 //          -- Must add reference to assembly to make this work!! --
@@ -54,7 +55,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.57";
+        readonly string Version = "v0.9.58";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         int CoreVal = 4; // set number of cpu cores to use for threading
         string[] s_OpenFiles = new string[0];
@@ -72,6 +73,7 @@ namespace Crypt_It
         readonly string dummypath = $@"{(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))}\Crypt-It";
         readonly string dummyfile = @"\dummyfil.000";
         readonly CustomProgressBar PBar = new CustomProgressBar { DisplayStyle = ProgressBarDisplayText.Percentage, };
+
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         // ------------------- Program start here -----------------------------
@@ -113,6 +115,19 @@ namespace Crypt_It
             }
             return false;
         }
+        void Set_Selected_Options()
+        {
+            string d = ""; string dr = ""; string tf = ""; string mt = ""; string ti = ""; string dc = "";
+            if (B.DelSource) d = " (Delete source) ";
+            if (B.DryRun) dr = " (Dry run) ";
+            if (B.TestFile) tf = " (Test file) ";
+            if (B.Timer) ti = " (Timer) ";
+            if (msDec.Checked) dc = " (Decrypt mode) ";
+            if (msThreadMan.Checked) mt = $" (Max threads {CoreVal}) "; else mt = " (Max threads Auto) ";
+            if (File.NewFile.Length > 0) SelectedOptions.Text = $"  {d}{dr}{tf}{mt}{ti}{dc}  ";
+            else SelectedOptions.Text = "Open or Drag Files.";
+            if (SelectedOptions.Text.Length <= 4) SelectedOptions.Visible = false; else SelectedOptions.Visible = true;
+        }
         void Set_Options_Start()
         {
             pathLabel.Text = "";
@@ -122,12 +137,14 @@ namespace Crypt_It
             Controls.Add(PBar);
             var a = 128;
             Color bcolor = Color.FromArgb(64, a, a, a);
-            thd.ForeColor = Color.FromArgb(144, 255, 144);
+            thd.ForeColor = SelectedOptions.ForeColor = Color.FromArgb(144, 255, 144);
             AllowDrop = true;
             DragEnter += new DragEventHandler(Crypt_It_DragEnter);
             DragDrop += new DragEventHandler(Crypt_It_DragDrop);
             Menu.BackColor = t_remain.BackColor = bcolor;
             Menu.Renderer = new MyRender();
+            panel1.BackColor = bcolor;
+            Set_Selected_Options();
         }
         void Start_Working(bool a)
         {
@@ -167,6 +184,7 @@ namespace Crypt_It
             if (!B.msDCHK) B.Reverse = msDec.Checked = msClear.Visible = false;
             B.Overwrite = B.Overwrite_Checked = B.YesClick = msStart.Enabled = B.msDCHK =
                 t_remain.Visible = B.Drop = B.Cancel = false;
+            Set_Selected_Options();
         }
         async void Process_File_List()
         {
@@ -613,6 +631,7 @@ namespace Crypt_It
                 B.Reverse = msDec.Checked = (File.NewFile.Length == 1 && Path.GetExtension(File.NewFile[0]) == ".crypt");
                 this.Text = $"{Program} {Version}";
                 Options();
+                Set_Selected_Options();
             }
         }
         private (byte[], byte[], byte[]) Make_Keys()
@@ -717,7 +736,9 @@ namespace Crypt_It
                 long len = 0;
                 var f = 0;
                 pathLabel.Visible = false;
-                pathLabel.Text = "Retrieving File List.";
+                pathLabel.Text = "";
+                pathLabel.ForeColor = Color.Silver;
+                SelectedOptions.Text = "Retrieving File List.";
                 string[] File_List = (string[])e.Data.GetData(DataFormats.FileDrop);
                 var files = new List<string>();
                 var size = new List<long>();
@@ -800,9 +821,10 @@ namespace Crypt_It
                         try
                         {
                             if (files.Count > 0 && files[files.Count - 1].Length > 0) this.Invoke(new Action(() =>
-                            { pathLabel.Text = $"{Trunc(false, files[files.Count - 1], 47)}"; t_remain.Text = $"({files.Count:N0})"; }));
+                            { pathLabel.Text = $"{Trunc(false, files[files.Count - 1], 47)}"; SelectedOptions.Text = $"Retrieving file list ({files.Count:N0})"; }));
                             Thread.Sleep(25);
-                        } catch (Exception) { }
+                        }
+                        catch (Exception) { }
                     }
                 }
             }
@@ -832,10 +854,11 @@ namespace Crypt_It
         }
         private void DeleteSouceFilesToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (!B.Working && !B.DryRun)
+            if (!B.Working)
             {
                 if (B.DelSource) B.DelSource = msDelFile.Checked = false;
-                else B.DelSource = msDelFile.Checked = true;
+                else { B.DelSource = msDelFile.Checked = true; msDryRun.Checked = B.DryRun = msTestFile.Checked = B.TestFile = false; }
+                Set_Selected_Options();
             }
         }
         private void UseTestfileToolStripMenuItem1_Click(object sender, EventArgs e)
@@ -843,7 +866,8 @@ namespace Crypt_It
             if (!B.Working)
             {
                 if (B.TestFile) B.TestFile = msTestFile.Checked = false;
-                else B.TestFile = msTestFile.Checked = true;
+                else { B.TestFile = msTestFile.Checked = true; msDelFile.Checked = B.DelSource = msDryRun.Checked = B.DryRun = false; }
+                Set_Selected_Options();
             }
         }
         private void Timer_Click(object sender, EventArgs e)
@@ -852,6 +876,7 @@ namespace Crypt_It
             {
                 if (B.Timer) B.Timer = msTimer.Checked = false;
                 else B.Timer = msTimer.Checked = true;
+                Set_Selected_Options();
             }
         }
         private void MsDec_Click(object sender, EventArgs e)
@@ -860,6 +885,7 @@ namespace Crypt_It
             {
                 if (B.Reverse) { B.Reverse = msDec.Checked = B.msDCHK = false; msDec.Text = "Decrypt"; msDec.Image = Resources.decrypt; }
                 else { B.Reverse = msDec.Checked = B.msDCHK = true; msDec.Text = "Encrypt"; msDec.Image = Resources.enc; }
+                Set_Selected_Options();
                 Options();
             }
         }
@@ -886,6 +912,7 @@ namespace Crypt_It
             {
                 msThreadAuto.Checked = true;
                 B.Set_Cores = msThreadMan.Checked = false;
+                Set_Selected_Options();
             }
         }
         private void SetManuallyToolStripMenuItem_Click(object sender, EventArgs e)
@@ -900,6 +927,7 @@ namespace Crypt_It
                     (CoreVal, B.Thread_Cancel) = Prompt.ShowDialog("(1-255)", "Set Thread Count", CoreVal);
                     if (B.Thread_Cancel) { CoreVal = def; msThreadAuto.Checked = true; B.Thread_Cancel = msThreadMan.Checked = B.Set_Cores = false; }
                 }
+                Set_Selected_Options();
             }
         }
         private async void ExitToolStripMenuItem_Click(object sender, EventArgs e)
@@ -916,7 +944,8 @@ namespace Crypt_It
             if (!B.Working)
             {
                 if (msDryRun.Checked) B.DryRun = msDryRun.Checked = false;
-                else { msDryRun.Checked = B.DryRun = true; B.DelSource = msDelFile.Checked = false; }
+                else { msDryRun.Checked = B.DryRun = true; B.DelSource = msDelFile.Checked = msTestFile.Checked = B.TestFile = false; }
+                Set_Selected_Options();
             }
         }
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -926,7 +955,8 @@ namespace Crypt_It
                 this.Text = "Closing..";
                 System.Windows.Forms.Application.Exit();
                 Environment.Exit(0);
-            } catch { }
+            }
+            catch { }
             this.Close();
         }
     }
