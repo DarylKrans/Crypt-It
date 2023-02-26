@@ -1,4 +1,5 @@
 ﻿using Crypt_It.Properties;
+using Microsoft.WindowsAPICodePack.Taskbar;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -37,15 +38,23 @@ using System.Windows.Forms;
 ///  (done)  Added message box for the timer function instead of displaying it in the title bar
 ///  (done)  Added remaining time to menu strip and fixed the time format output for both time remaining and time elapsed.
 ///  (done)  Added ability to drag multiple folders into the program for processing
-///  (fixed) Fixed bug where Open File and Batch File button didn't do anything and returned to main screen
+///  (done)  Fixed bug where Open File and Batch File button didn't do anything and returned to main screen
+///  (done)  Added progress indicator to taskbark
+///  (done)  Added NuGet package Costura.Fody to embed external DLL files into the executable on compile
 ///          Possibly add more steps to the encryption process
+
+//          -- Must add reference to assembly to make this work!! --
+//                    Set Taskbar progress indicators
+//      TaskbarManager.Instance.SetProgressState(TaskbarProgressBarState.Error, Handle);
+//      TaskbarManager.Instance.SetProgressValue((int)prog, 100, Handle);
 
 namespace Crypt_It
 {
+
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.52";
+        readonly string Version = "v0.9.54";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         int CoreVal = 4; // set number of cpu cores to use for threading
         string[] s_OpenFiles = new string[0];
@@ -75,7 +84,12 @@ namespace Crypt_It
             Clear_Info();
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
+        private void Crypt_It_Load(object sender, EventArgs e)
+        {
+            //TaskbarManager.Instance.SetProgressState(TaskbarProgressBarState.Error, Handle);
+            //TaskbarManager.Instance.SetProgressValue(40, 100, Handle);
 
+        }
         public static string Get_Time(long ms, bool s)
         {
             string hr; string mn; string se;
@@ -135,6 +149,7 @@ namespace Crypt_It
             Array.Clear(File.OutFile, 0, File.OutFile.Length);
             Array.Clear(File.FileSize, 0, File.FileSize.Length);
             Array.Clear(s_OpenFiles, 0, s_OpenFiles.Length);
+            TaskbarManager.Instance.SetProgressValue(0, 100, Handle);
             File.NewFile = new string[0];
             File.OutFile = new string[0];
             File.FileSize = new long[0];
@@ -379,7 +394,8 @@ namespace Crypt_It
                 if (TotalLength > tms) Elapsed = (File.l_tot - TotalLength) / (TotalLength / tms);
                 double prog = 100.0 * TotalLength / File.l_tot;
                 PBar.Value = (int)prog;
-                PBar.Update();
+                //PBar.Update();
+                TaskbarManager.Instance.SetProgressValue(PBar.Value, 100, Handle);
                 if (!t_remain.Visible) t_remain.Visible = true;
                 t_remain.Text = Get_Time(Elapsed, false);
                 if (File.i_TotalFiles > 1)
@@ -920,6 +936,7 @@ namespace Crypt_It
                 else { msDryRun.Checked = B.DryRun = true; B.DelSource = msDelFile.Checked = false; }
             }
         }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             Application.Exit();

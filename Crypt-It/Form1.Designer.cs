@@ -449,6 +449,7 @@ namespace Crypt_It
             this.Name = "Crypt_It";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Crypt-It";
+            this.Load += new System.EventHandler(this.Crypt_It_Load);
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.ResumeLayout(false);
