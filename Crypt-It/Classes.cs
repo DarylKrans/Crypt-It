@@ -6,7 +6,7 @@ using System.Windows.Forms;
 namespace Crypt_It
 {
     /// <summary>
-    /// Menu strip class
+    /// Booleans 
     /// </summary>
     public static class B
     {
@@ -29,6 +29,9 @@ namespace Crypt_It
         public static bool DryRun = false;
         public static bool Drop = false;
     }
+    /// <summary>
+    /// Variables for File list
+    /// </summary>
     public static class File  // Global variables used by both (Iwad) and (Dwad) functions
     {
         public static string[] NewFile = new string[0];
@@ -48,12 +51,6 @@ namespace Crypt_It
                 l_tot += FileSize[i];
             }
         }
-    }
-    public static class T
-    {
-        public static readonly long UpdateInterval = 250; // sets update interval in miliseconds
-        public static long Cur_Time;
-        public static long Update_Interval;
     }
     public class MyRender : ToolStripProfessionalRenderer
     {
@@ -76,6 +73,9 @@ namespace Crypt_It
             }
         }
     }
+    /// <summary>
+    /// Menu Strip color override
+    /// </summary>
     public class ColorTable : ProfessionalColorTable
     {
         public override Color MenuItemPressedGradientBegin => Color.Black;
@@ -109,7 +109,7 @@ namespace Crypt_It
             ProgressBarRenderer.DrawHorizontalBar(g, rect);
             rect.Inflate(-1, -1);
             var brush = new LinearGradientBrush(new Point(0, 10), new Point(rect.Width + 2, 10)
-                    , Color.FromArgb(128, 96, 96, 96), Color.FromArgb(224, 0, 0, 0));
+                    , Color.FromArgb(224, 32, 32, 32), Color.FromArgb(224, 0, 0, 0));
             e.Graphics.FillRectangle(brush, 1, 1, rect.Width + 0, rect.Height + 0);
             if (Value > 0)
             {
@@ -118,7 +118,7 @@ namespace Crypt_It
                         , Color.FromArgb(255, 0, 168, 0), Color.FromArgb(255, 0, 64, 168));
                 ColorBlend c = new ColorBlend(3)
                 {
-                    Colors = new Color[3] { Color.FromArgb(255, 0, 32, 0), Color.FromArgb(255, 0, 255, 64), Color.FromArgb(255, 0, 32, 0) },
+                    Colors = new Color[3] { Color.FromArgb(255, 0, 196, 44), Color.FromArgb(255, 0, 255, 64), Color.FromArgb(255, 0, 32, 0) },
                     Positions = new float[3] { 0f, 0.5f, 1f }
                 };
                 fillbrush.InterpolationColors = c;

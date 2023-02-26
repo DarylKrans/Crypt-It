@@ -186,7 +186,7 @@ namespace Crypt_It
             this.thd.AutoSize = true;
             this.thd.BackColor = System.Drawing.Color.Transparent;
             this.thd.ForeColor = System.Drawing.Color.Silver;
-            this.thd.Location = new System.Drawing.Point(223, 112);
+            this.thd.Location = new System.Drawing.Point(270, 112);
             this.thd.Name = "thd";
             this.thd.Size = new System.Drawing.Size(0, 13);
             this.thd.TabIndex = 16;
@@ -449,7 +449,6 @@ namespace Crypt_It
             this.Name = "Crypt_It";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Crypt-It";
-            this.Load += new System.EventHandler(this.Crypt_It_Load);
             this.Menu.ResumeLayout(false);
             this.Menu.PerformLayout();
             this.ResumeLayout(false);

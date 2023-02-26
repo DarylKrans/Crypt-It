@@ -12,7 +12,7 @@ using System.Windows.Forms;
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 25th 2023                       //
+//     Latest revision Feb 26th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -54,7 +54,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.54";
+        readonly string Version = "v0.9.57";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         int CoreVal = 4; // set number of cpu cores to use for threading
         string[] s_OpenFiles = new string[0];
@@ -69,7 +69,8 @@ namespace Crypt_It
         int l;
         readonly int Chunk_Length = 131072 * 6; //(131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
         readonly int def;
-        readonly string dummy = @"c:\dummyfil.000";
+        readonly string dummypath = $@"{(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))}\Crypt-It";
+        readonly string dummyfile = @"\dummyfil.000";
         readonly CustomProgressBar PBar = new CustomProgressBar { DisplayStyle = ProgressBarDisplayText.Percentage, };
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
@@ -84,12 +85,6 @@ namespace Crypt_It
             Clear_Info();
         }
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
-        private void Crypt_It_Load(object sender, EventArgs e)
-        {
-            //TaskbarManager.Instance.SetProgressState(TaskbarProgressBarState.Error, Handle);
-            //TaskbarManager.Instance.SetProgressValue(40, 100, Handle);
-
-        }
         public static string Get_Time(long ms, bool s)
         {
             string hr; string mn; string se;
@@ -103,7 +98,7 @@ namespace Crypt_It
             if (s && t.Minutes < 1) se = $"{t.Seconds.ToString().PadLeft(1, '0')}";
             if (s) return $"{hr}{mn}{se}.{t.Milliseconds}"; else return $"({hr}{mn}{se})";
         }
-        protected virtual bool IsFileLocked(FileInfo file)
+        protected virtual bool Locked(FileInfo file)
         {
             try
             {
@@ -116,8 +111,6 @@ namespace Crypt_It
             {
                 return true;
             }
-
-            //file is not locked
             return false;
         }
         void Set_Options_Start()
@@ -129,6 +122,7 @@ namespace Crypt_It
             Controls.Add(PBar);
             var a = 128;
             Color bcolor = Color.FromArgb(64, a, a, a);
+            thd.ForeColor = Color.FromArgb(144, 255, 144);
             AllowDrop = true;
             DragEnter += new DragEventHandler(Crypt_It_DragEnter);
             DragDrop += new DragEventHandler(Crypt_It_DragDrop);
@@ -145,6 +139,18 @@ namespace Crypt_It
         }
         void Clear_Info()
         {
+            if (pathLabel.Text.Contains("inaccessible") || pathLabel.Text.Contains("No files") && File.NewFile.Length == 0)
+            {
+                pathLabel.ForeColor = Color.Yellow;
+                pathLabel.Visible = true;
+            }
+            else
+            {
+                pathLabel.Visible = false;
+                pathLabel.Visible = false;
+                pathLabel.Text = "";
+                pathLabel.ForeColor = Color.Silver;
+            }
             Array.Clear(File.NewFile, 0, File.NewFile.Length);
             Array.Clear(File.OutFile, 0, File.OutFile.Length);
             Array.Clear(File.FileSize, 0, File.FileSize.Length);
@@ -169,8 +175,6 @@ namespace Crypt_It
             var def = this.Text;
             long TotalLength = 0;
             Start_Working(true);
-            long Cur_Time = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
-            long Update_Interval = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) + T.UpdateInterval;
             int tfil = File.i_TotalFiles;
             long ms = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
             DateTime start = DateTime.Now;
@@ -196,7 +200,13 @@ namespace Crypt_It
                     else File.OutFile[FileNum] = $@"c:\testfile{FileNum}.crypt";
                 }
                 Overwrite_Prompt(File.OutFile[FileNum]);
-                if (B.DryRun) { File.OutFile[FileNum] = dummy; }
+                if (B.DryRun)
+                {
+                    bool exists = System.IO.Directory.Exists(dummypath);
+                    if (!exists)
+                        System.IO.Directory.CreateDirectory(dummypath);
+                    File.OutFile[FileNum] = dummypath + dummyfile;
+                }
                 b_DoWork = (FileNum != (File.i_TotalFiles - 1));
                 // ------ end condition checks ------------
                 if (B.Overwrite && !B.Cancel)
@@ -207,7 +217,6 @@ namespace Crypt_It
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
-                        if (Update_Interval >= Cur_Time) this.Invoke(new Action(() => W_Update()));
                         i_Cores = Environment.ProcessorCount - 1;
                         if (B.Set_Cores) { if (CoreVal > 0) i_Cores = CoreVal - 1; else i_Cores = 0; }
                         else if (i_Cores > 5) i_Cores /= 2;
@@ -269,7 +278,7 @@ namespace Crypt_It
                             string s = "";
                             if (tfil > 1) s = "s";
                             MessageBoxButtons buttons = MessageBoxButtons.OK;
-                            DialogResult result = MessageBox.Show($"time {e_time} seconds", ($"{tfil} file{s} processed.")
+                            DialogResult result = System.Windows.Forms.MessageBox.Show($"time {e_time} seconds", ($"{tfil} file{s} processed.")
                                 , buttons, MessageBoxIcon.Information, MessageBoxDefaultButton.Button2);
                         }
                         if (File.FileSize.Length >= FileNum && File.FileSize.Length > 0) File.FileSize[FileNum] = 0;
@@ -327,7 +336,7 @@ namespace Crypt_It
                         if (e > 0)
                         {
                             MessageBoxButtons buttons = MessageBoxButtons.YesNoCancel;
-                            DialogResult result = MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
+                            DialogResult result = System.Windows.Forms.MessageBox.Show($"overwrite file{mes}?", ($"{e} Destination file{mes} already exist{mes2}!")
                                 , buttons, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
                             if (result == DialogResult.Yes) B.YesClick = true;
                             if (result == DialogResult.No) B.YesClick = false;
@@ -364,11 +373,6 @@ namespace Crypt_It
                     if (a == "h") try { System.IO.File.SetAttributes(f, System.IO.File.GetAttributes(f) | FileAttributes.Hidden); } catch { } // hide file
                     if (a == "u") try { System.IO.File.SetAttributes(f, System.IO.File.GetAttributes(f) & ~FileAttributes.Hidden); } catch { } // unhide file
                 }
-                void W_Update()
-                {
-                    Pass.Update();
-                    PassC.Update();
-                }
                 byte[] Read_Data(long offset, int len)
                 {
                     var dat = new byte[len];
@@ -394,33 +398,21 @@ namespace Crypt_It
                 if (TotalLength > tms) Elapsed = (File.l_tot - TotalLength) / (TotalLength / tms);
                 double prog = 100.0 * TotalLength / File.l_tot;
                 PBar.Value = (int)prog;
-                //PBar.Update();
                 TaskbarManager.Instance.SetProgressValue(PBar.Value, 100, Handle);
                 if (!t_remain.Visible) t_remain.Visible = true;
                 t_remain.Text = Get_Time(Elapsed, false);
                 if (File.i_TotalFiles > 1)
                 {
-                    var c = Name_Length_Limit(File.i_TotalFiles - File.FileNum);
-                    Fname.Text = $"(File {(File.NewFile.Length - File.FileNum):N0}) {Trunc(File.NewFile[File.FileNum], 42 - c)}";
+                    Fname.Text = $"{Trunc(true, File.NewFile[File.FileNum], 48)}";
                 }
                 long left = 0;
                 string kb;
                 var p = (File.l_tot - TotalLength);
                 if (((p) >> 10) > 1000000) { left = (((p) >> 10) >> 10); kb = "mb"; }
                 else { left = ((p) >> 10); kb = "kb"; }
-                Fsize.Text = $"{left:N0} {kb} remaining.";
-                if (B.MultiThread) thd.Text = $"(Multi-Threaded x{i_Cores + 1})"; else thd.Text = null;
+                Fsize.Text = $"{left:N0} {kb} / Files ({(File.NewFile.Length - File.FileNum):N0}) remaining.";
+                if (B.MultiThread) thd.Text = $"Threads (x{i_Cores + 1})"; else thd.Text = null;
             }
-        }
-        static int Name_Length_Limit(long Number_of_files)
-        {
-            int digits = 0;
-            while (Number_of_files != 0)
-            {
-                Number_of_files /= 10;
-                digits++;
-            }
-            return digits;
         }
         /// ------------------------------------ Actual code for Encrytion process --------------------------------------- ///
         void Encrypt(byte[] DataIn, byte[] skey, byte[] rkey, byte[] xor, long length, long r1, int o)
@@ -573,7 +565,7 @@ namespace Crypt_It
                         long[] temp2 = new long[l];
                         for (int i = 0; i < l; i++)
                         {
-                            if (!IsFileLocked(new FileInfo(s_OpenFiles[i])))  //(!u)
+                            if (!Locked(new FileInfo(s_OpenFiles[i])))  //(!u)
                             {
                                 try
                                 {
@@ -603,7 +595,7 @@ namespace Crypt_It
                     }
                 });
 
-                if (File.NewFile.Length == 1) { Fname.Text = Trunc(File.NewFile[0], 52); Fname.Visible = true; }
+                if (File.NewFile.Length == 1) { Fname.Text = Trunc(true, File.NewFile[0], 52); Fname.Visible = true; }
                 if (File.NewFile.Length > 1) { Fname.Text = $"Batch file process ({File.NewFile.Length:N0}) files."; Fname.Visible = true; }
                 if (File.NewFile.Length >= 1)
                 {
@@ -706,9 +698,10 @@ namespace Crypt_It
             B.Reverse = !B.Reverse;
             Options();
         }
-        private static string Trunc(string value, int maxChars)
+        private static string Trunc(bool r, string value, int maxChars)
         {
-            return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}..{value.Substring(value.Length - (maxChars), maxChars)}";
+            if (r) return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}..{value.Substring(value.Length - (maxChars), maxChars)}";
+            else return value.Length <= maxChars ? value : $"{value.Substring(0, maxChars)}..";
         }
         void Crypt_It_DragEnter(object sender, DragEventArgs e)
         {
@@ -723,12 +716,12 @@ namespace Crypt_It
                 B.Drop = true;
                 long len = 0;
                 var f = 0;
+                pathLabel.Visible = false;
                 pathLabel.Text = "Retrieving File List.";
                 string[] File_List = (string[])e.Data.GetData(DataFormats.FileDrop);
                 var files = new List<string>();
                 var size = new List<long>();
                 var outfile = new List<string>();
-                pathLabel.Visible = t_remain.Visible = true;
                 await Task.Run(delegate
                 {
                     B.Working = true;
@@ -781,19 +774,14 @@ namespace Crypt_It
                 files.Clear(); size.Clear(); outfile.Clear();
                 File.Enumerate();
                 Array.Clear(File_List, 0, File_List.Length);
-                if (f > 0) pathLabel.Text = $"{f} Invalid Files/Folders!";
-                if (pathLabel.Text.Contains("Invalid") && File.NewFile.Length == 0)
-                {
-                    Thread fail = new Thread(new ThreadStart(Fail));
-                    fail.Start();
-                }
-                else pathLabel.Visible = false;
+                if (f > 0) pathLabel.Text = $"({f}) Files or folders are inaccessible!";
+                if (f == 0 && File.NewFile.Length == 0) pathLabel.Text = "No files in path or files contain no data!";
+                if (!pathLabel.Text.Contains("inaccessible") || !pathLabel.Text.Contains("No files")) pathLabel.Visible = false;
                 Filter_Files();
 
                 long CheckFile(string file)
                 {
-                    //var u = IsFileLocked(new FileInfo(file));
-                    if (!IsFileLocked(new FileInfo(file)))
+                    if (!Locked(new FileInfo(file)))
                     {
                         try
                         {
@@ -805,22 +793,17 @@ namespace Crypt_It
                 }
                 void P_Update()
                 {
+                    Thread.Sleep(1500);
+                    this.Invoke(new Action(() => pathLabel.Visible = t_remain.Visible = true));
                     while (1 == 1)
                     {
-                        if (files.Count > 0 && files[files.Count - 1].Length > 0) this.Invoke(new Action(() =>
-                        { pathLabel.Text = $"{Trunc(files[files.Count - 1], 43)}"; t_remain.Text = $"({files.Count:N0})"; }));
-                        Thread.Sleep(25);
+                        try
+                        {
+                            if (files.Count > 0 && files[files.Count - 1].Length > 0) this.Invoke(new Action(() =>
+                            { pathLabel.Text = $"{Trunc(false, files[files.Count - 1], 47)}"; t_remain.Text = $"({files.Count:N0})"; }));
+                            Thread.Sleep(25);
+                        } catch (Exception) { }
                     }
-                }
-                void Fail()
-                {
-                    this.Invoke(new Action(() => pathLabel.ForeColor = Color.Yellow));
-                    for (int i = 0; i < 6; i++)
-                    {
-                        Thread.Sleep(250);
-                        this.Invoke(new Action(() => pathLabel.Visible = !pathLabel.Visible));
-                    }
-                    this.Invoke(new Action(() => { pathLabel.Visible = false; pathLabel.Text = ""; pathLabel.ForeColor = Color.Silver; }));
                 }
             }
         }
@@ -936,11 +919,15 @@ namespace Crypt_It
                 else { msDryRun.Checked = B.DryRun = true; B.DelSource = msDelFile.Checked = false; }
             }
         }
-
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
-            Application.Exit();
-            Environment.Exit(0);
+            try
+            {
+                this.Text = "Closing..";
+                System.Windows.Forms.Application.Exit();
+                Environment.Exit(0);
+            } catch { }
+            this.Close();
         }
     }
 }
