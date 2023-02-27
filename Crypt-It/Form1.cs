@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -42,6 +44,7 @@ using System.Windows.Forms;
 ///  (done)  Added progress indicator to taskbark
 ///  (done)  Added NuGet package Costura.Fody to embed external DLL files into the executable on compile
 ///  (done)  Added status bar to the bottom that displays selected options and other potentially useful information
+///  (done)  Added ability grant access to protected files and folders.  Highway to the <DANGER DANGER ZONE </DANGER> (read access only, no write)
 ///          Possibly add more steps to the encryption process
 
 //          -- Must add reference to assembly to make this work!! --
@@ -55,7 +58,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.58";
+        readonly string Version = "v0.9.60";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         int CoreVal = 4; // set number of cpu cores to use for threading
         string[] s_OpenFiles = new string[0];
@@ -73,7 +76,6 @@ namespace Crypt_It
         readonly string dummypath = $@"{(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))}\Crypt-It";
         readonly string dummyfile = @"\dummyfil.000";
         readonly CustomProgressBar PBar = new CustomProgressBar { DisplayStyle = ProgressBarDisplayText.Percentage, };
-
         public Crypt_It()
         //🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊🦊
         // ------------------- Program start here -----------------------------
@@ -100,6 +102,40 @@ namespace Crypt_It
             if (s && t.Minutes < 1) se = $"{t.Seconds.ToString().PadLeft(1, '0')}";
             if (s) return $"{hr}{mn}{se}.{t.Milliseconds}"; else return $"({hr}{mn}{se})";
         }
+        /// <summary>
+        /// IEnumerable string used to set IO file permissions to allow read of protected folders/files
+        /// </summary>
+        public IEnumerable<string> Get(string path)
+        {
+            IEnumerable<string> files = Enumerable.Empty<string>();
+            IEnumerable<string> directories = Enumerable.Empty<string>();
+            try
+            {
+                var permission = new FileIOPermission(FileIOPermissionAccess.Read, path);
+                permission.Demand();
+                files = Directory.GetFiles(path);
+                directories = Directory.GetDirectories(path);
+            }
+            catch
+            {
+                path = null;
+            }
+
+            if (path != null)
+            {
+                yield return path;
+            }
+
+            foreach (var file in files)
+            {
+                yield return file;
+            }
+            var subdirectoryItems = directories.SelectMany(Get);
+            foreach (var result in subdirectoryItems)
+            {
+                yield return result;
+            }
+        }
         protected virtual bool Locked(FileInfo file)
         {
             try
@@ -117,7 +153,7 @@ namespace Crypt_It
         }
         void Set_Selected_Options()
         {
-            string d = ""; string dr = ""; string tf = ""; string mt = ""; string ti = ""; string dc = "";
+            string d = ""; string dr = ""; string tf = ""; string mt; string ti = ""; string dc = "";
             if (B.DelSource) d = " (Delete source) ";
             if (B.DryRun) dr = " (Dry run) ";
             if (B.TestFile) tf = " (Test file) ";
@@ -203,7 +239,7 @@ namespace Crypt_It
                 File.FileNum = FileNum;
                 FileStream Stream = new FileStream(File.NewFile[FileNum], FileMode.Open, FileAccess.Read);
                 bool b_DoWork = B.Overwrite = true;
-                B.Reverse = (Path.GetExtension(File.NewFile[FileNum]) == ".crypt");
+                B.Reverse = (System.IO.Path.GetExtension(File.NewFile[FileNum]) == ".crypt");
                 var uLongs = File.FileSize[FileNum] >> 3; // FileSize / 8;
                 long[] ByteSegment = new long[3]
                 {
@@ -214,6 +250,8 @@ namespace Crypt_It
                 // ----- Condition Checks ---------------
                 if (B.TestFile)
                 {
+                    var permission = new FileIOPermission(FileIOPermissionAccess.Append, @"c:\");
+                    permission.Demand();
                     if (B.Reverse) File.OutFile[FileNum] = $@"c:\testfile{FileNum}.bin";
                     else File.OutFile[FileNum] = $@"c:\testfile{FileNum}.crypt";
                 }
@@ -221,8 +259,7 @@ namespace Crypt_It
                 if (B.DryRun)
                 {
                     bool exists = System.IO.Directory.Exists(dummypath);
-                    if (!exists)
-                        System.IO.Directory.CreateDirectory(dummypath);
+                    if (!exists) System.IO.Directory.CreateDirectory(dummypath);
                     File.OutFile[FileNum] = dummypath + dummyfile;
                 }
                 b_DoWork = (FileNum != (File.i_TotalFiles - 1));
@@ -604,8 +641,8 @@ namespace Crypt_It
                                 File.NewFile[i] = temp[i];
                                 File.l_tot += temp2[i];
                                 File.FileSize[i] = temp2[i];
-                                if (Path.GetExtension(File.NewFile[i]) != ".crypt") { File.OutFile[i] = $"{File.NewFile[i]}.crypt"; File.cryptfile = false; }
-                                else File.OutFile[i] = $@"{Path.GetDirectoryName(File.NewFile[i])}\{Path.GetFileNameWithoutExtension(File.NewFile[i])}";
+                                if (System.IO.Path.GetExtension(File.NewFile[i]) != ".crypt") { File.OutFile[i] = $"{File.NewFile[i]}.crypt"; File.cryptfile = false; }
+                                else File.OutFile[i] = $@"{System.IO.Path.GetDirectoryName(File.NewFile[i])}\{System.IO.Path.GetFileNameWithoutExtension(File.NewFile[i])}";
                             }
                         }
                         Array.Clear(temp, 0, temp.Length);
@@ -628,7 +665,7 @@ namespace Crypt_It
                 if (File.cryptfile && File.l_tot > 0) B.Reverse = msDec.Checked = true;
                 else B.Reverse = msDec.Checked = false;
                 B.Working = B.Drop = false;
-                B.Reverse = msDec.Checked = (File.NewFile.Length == 1 && Path.GetExtension(File.NewFile[0]) == ".crypt");
+                B.Reverse = msDec.Checked = (File.NewFile.Length == 1 && System.IO.Path.GetExtension(File.NewFile[0]) == ".crypt");
                 this.Text = $"{Program} {Version}";
                 Options();
                 Set_Selected_Options();
@@ -719,7 +756,7 @@ namespace Crypt_It
         }
         private static string Trunc(bool r, string value, int maxChars)
         {
-            if (r) return value.Length <= maxChars ? value : $"{Path.GetPathRoot(value)}..{value.Substring(value.Length - (maxChars), maxChars)}";
+            if (r) return value.Length <= maxChars ? value : $"{System.IO.Path.GetPathRoot(value)}..{value.Substring(value.Length - (maxChars), maxChars)}";
             else return value.Length <= maxChars ? value : $"{value.Substring(0, maxChars)}..";
         }
         void Crypt_It_DragEnter(object sender, DragEventArgs e)
@@ -758,6 +795,7 @@ namespace Crypt_It
                                 len = CheckFile(File_List[r]);
                                 if (len > 0)
                                 {
+
                                     files.Add(File_List[r]);
                                     size.Add(len);
                                     outfile.Add(Ext(File_List[r]));
@@ -765,10 +803,10 @@ namespace Crypt_It
                             }
                             else
                             {
-                                var Folder_files = Directory.GetFiles(File_List[r], "*", SearchOption.AllDirectories);
+                                var Folder_files = Get(File_List[r]).ToArray();
                                 for (int s = 0; s < Folder_files.Length; s++)
                                 {
-                                    len = CheckFile(Folder_files[s]);
+                                    if (!Directory.Exists(Folder_files[s])) len = CheckFile(Folder_files[s]);
                                     if (len > 0)
                                     {
                                         files.Add(Folder_files[s]);
@@ -779,8 +817,8 @@ namespace Crypt_It
                             }
                             string Ext(string inf)
                             {
-                                if (Path.GetExtension(inf) != ".crypt") { File.cryptfile = false; return ($"{inf}.crypt"); }
-                                else return ($@"{Path.GetDirectoryName(inf)}\{Path.GetFileNameWithoutExtension(inf)}");
+                                if (System.IO.Path.GetExtension(inf) != ".crypt") { File.cryptfile = false; return ($"{inf}.crypt"); }
+                                else return ($@"{System.IO.Path.GetDirectoryName(inf)}\{System.IO.Path.GetFileNameWithoutExtension(inf)}");
                             }
                         }
                         catch (Exception) { f++; }
@@ -795,7 +833,7 @@ namespace Crypt_It
                 files.Clear(); size.Clear(); outfile.Clear();
                 File.Enumerate();
                 Array.Clear(File_List, 0, File_List.Length);
-                if (f > 0) pathLabel.Text = $"({f}) Files or folders are inaccessible!";
+                if (f > 0 && File.NewFile.Length == 0) pathLabel.Text = $"({f}) Files or folders are inaccessible!";
                 if (f == 0 && File.NewFile.Length == 0) pathLabel.Text = "No files in path or files contain no data!";
                 if (!pathLabel.Text.Contains("inaccessible") || !pathLabel.Text.Contains("No files")) pathLabel.Visible = false;
                 Filter_Files();
@@ -953,7 +991,7 @@ namespace Crypt_It
             try
             {
                 this.Text = "Closing..";
-                System.Windows.Forms.Application.Exit();
+                Application.Exit();
                 Environment.Exit(0);
             }
             catch { }
