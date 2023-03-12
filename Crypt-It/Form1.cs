@@ -10,11 +10,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Management;
 
 /////////////////////////////////////////////////////////////
 //     Crypt-It by Daryl Krans                             //
 //     Started on Feb 8th 2023                             //
-//     Latest revision Feb 26th 2023                       //
+//     Latest revision Mar 11th 2023                       //
 /////////////////////////////////////////////////////////////
 
 ///
@@ -45,6 +46,8 @@ using System.Windows.Forms;
 ///  (done)  Added NuGet package Costura.Fody to embed external DLL files into the executable on compile
 ///  (done)  Added status bar to the bottom that displays selected options and other potentially useful information
 ///  (done)  Added ability grant access to protected files and folders.  Highway to the <DANGER DANGER ZONE </DANGER> (read access only, no write)
+///  (done)  Added manual garbage collection to manage memory usage better
+///  (done)  Added ability to detect physical core count instead of guessing by dividing threads by 2
 ///          Possibly add more steps to the encryption process
 
 //          -- Must add reference to assembly to make this work!! --
@@ -58,7 +61,7 @@ namespace Crypt_It
     public partial class Crypt_It : Form
     {
         readonly string Program = "Crypt-It";
-        readonly string Version = "v0.9.60";
+        readonly string Version = "v0.9.63";
         /// These settings are available in the options menu. b_Reverse is available in File menu as "Decrypt"
         int CoreVal = 4; // set number of cpu cores to use for threading
         string[] s_OpenFiles = new string[0];
@@ -70,10 +73,12 @@ namespace Crypt_It
         byte[] by_XorKey = new byte[0];
         int i_B = 0;  // Don't click the "show text" button too many times. (You've been warned!)
         int i_Cores;
+        int i_ActualCores = 0;
         int l;
         readonly int Chunk_Length = 131072 * 6; //(131072 << 3); // change chunk size.  (*8 = 8mb chunks) 
         readonly int def;
         readonly string dummypath = $@"{(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData))}\Crypt-It";
+        readonly string testpath = $@"{(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments))}\Crypt-It TestFile";
         readonly string dummyfile = @"\dummyfil.000";
         readonly CustomProgressBar PBar = new CustomProgressBar { DisplayStyle = ProgressBarDisplayText.Percentage, };
         public Crypt_It()
@@ -81,9 +86,7 @@ namespace Crypt_It
         // ------------------- Program start here -----------------------------
         {
             InitializeComponent();
-            this.Text = $"{Program} {Version}";
             def = CoreVal;
-            if (CoreVal < 1) CoreVal = 1;
             Set_Options_Start();
             Options();
             Clear_Info();
@@ -151,6 +154,16 @@ namespace Crypt_It
             }
             return false;
         }
+        void Set_Cores()
+        {
+            foreach (var item in new System.Management.ManagementObjectSearcher("Select NumberOfCores from Win32_Processor").Get())
+            {
+                int coreCount = int.Parse(item["NumberOfCores"].ToString());
+                i_ActualCores += coreCount;
+            }
+            i_ActualCores -= 1;
+            if (CoreVal < 1) CoreVal = 1;
+        }
         void Set_Selected_Options()
         {
             string d = ""; string dr = ""; string tf = ""; string mt; string ti = ""; string dc = "";
@@ -160,7 +173,7 @@ namespace Crypt_It
             if (B.Timer) ti = " (Timer) ";
             if (msDec.Checked) dc = " (Decrypt mode) ";
             if (msThreadMan.Checked) mt = $" (Max threads {CoreVal}) "; else mt = " (Max threads Auto) ";
-            if (File.NewFile.Length > 0) SelectedOptions.Text = $"  {d}{dr}{tf}{mt}{ti}{dc}  ";
+            if (File.NewFile.Length > 0) SelectedOptions.Text = $"{d}{dr}{tf}{mt}{ti}{dc}";
             else SelectedOptions.Text = "Open or Drag Files.";
             if (SelectedOptions.Text.Length <= 4) SelectedOptions.Visible = false; else SelectedOptions.Visible = true;
         }
@@ -180,6 +193,8 @@ namespace Crypt_It
             Menu.BackColor = t_remain.BackColor = bcolor;
             Menu.Renderer = new MyRender();
             panel1.BackColor = bcolor;
+            this.Text = $"{Program} {Version}";
+            Set_Cores();
             Set_Selected_Options();
         }
         void Start_Working(bool a)
@@ -220,6 +235,7 @@ namespace Crypt_It
             if (!B.msDCHK) B.Reverse = msDec.Checked = msClear.Visible = false;
             B.Overwrite = B.Overwrite_Checked = B.YesClick = msStart.Enabled = B.msDCHK =
                 t_remain.Visible = B.Drop = B.Cancel = false;
+            GC.Collect();
             Set_Selected_Options();
         }
         async void Process_File_List()
@@ -250,10 +266,9 @@ namespace Crypt_It
                 // ----- Condition Checks ---------------
                 if (B.TestFile)
                 {
-                    var permission = new FileIOPermission(FileIOPermissionAccess.Append, @"c:\");
-                    permission.Demand();
-                    if (B.Reverse) File.OutFile[FileNum] = $@"c:\testfile{FileNum}.bin";
-                    else File.OutFile[FileNum] = $@"c:\testfile{FileNum}.crypt";
+                    if (B.Reverse) File.OutFile[FileNum] =  $@"{testpath}\testfile{FileNum}.bin";
+                    else File.OutFile[FileNum] = $@"{testpath}\testfile{FileNum}.crypt";
+                    if (!Directory.Exists(testpath)) Directory.CreateDirectory(testpath);
                 }
                 Overwrite_Prompt(File.OutFile[FileNum]);
                 if (B.DryRun)
@@ -272,9 +287,7 @@ namespace Crypt_It
                     /// ---------- start Asynchronous task -----------------------------------
                     await Task.Run(delegate
                     {
-                        i_Cores = Environment.ProcessorCount - 1;
-                        if (B.Set_Cores) { if (CoreVal > 0) i_Cores = CoreVal - 1; else i_Cores = 0; }
-                        else if (i_Cores > 5) i_Cores /= 2;
+                        if (B.Set_Cores) { if (CoreVal > 0) i_Cores = CoreVal - 1; else i_Cores = 0; } else i_Cores = i_ActualCores;
                         // -----------------------------------------------------------------------------
                         for (long step = 0; step < 3; step++)
                         {
@@ -309,8 +322,7 @@ namespace Crypt_It
                                 for (int x = 0; x <= i_Cores; x++) enc[x]?.Join();
                                 // -------------------------------------------------------------------
                                 if (!B.DryRun) for (int x = 0; x <= i_Cores; x++) Dest.Write(bt_Output[x], 0, bt_Output[x].Length);
-                                Array.Clear(bt_Output, 0, bt_Output.Length);
-                                Array.Clear(chunk, 0, chunk.Length);
+                                GC.Collect();
                             }
                         }
                     Loopend:
@@ -372,6 +384,7 @@ namespace Crypt_It
                     b_DoWork = true;
                     Start_Working(false);
                     B.msDCHK = false;
+                    GC.Collect();
                     Clear_Info();
                     Options();
                 }
@@ -833,6 +846,7 @@ namespace Crypt_It
                 files.Clear(); size.Clear(); outfile.Clear();
                 File.Enumerate();
                 Array.Clear(File_List, 0, File_List.Length);
+                GC.Collect();
                 if (f > 0 && File.NewFile.Length == 0) pathLabel.Text = $"({f}) Files or folders are inaccessible!";
                 if (f == 0 && File.NewFile.Length == 0) pathLabel.Text = "No files in path or files contain no data!";
                 if (!pathLabel.Text.Contains("inaccessible") || !pathLabel.Text.Contains("No files")) pathLabel.Visible = false;
